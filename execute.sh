@@ -1,5 +1,5 @@
 echo $$
-export WANDB_API_KEY=""
+source wandb.key.sh
 source environ/bin/activate
 CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=4 python3 main.py \
 	--project c100-comparison \
