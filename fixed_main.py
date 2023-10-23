@@ -27,7 +27,9 @@ def main(args):
 
 if __name__ == '__main__':
     print("NAME IS MAIIIIIN")
-    wandb.login(key=os.environ["WANDB_API_KEY"])
+    config = json.load(open('api_key.config'))
+    os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
+    wandb.login(key=os.environ['WANDB_API_KEY'])
     parser = argparse.ArgumentParser()
     # data
     parser.add_argument('--project', type=str, default=f"new_project")

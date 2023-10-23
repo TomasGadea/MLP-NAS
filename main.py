@@ -4,7 +4,10 @@ import torch
 import random
 import wandb
 import os
-wandb.login(key=os.environ["WANDB_API_KEY"])
+import json
+config = json.load(open('api_key.config'))
+os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
+wandb.login(key=os.environ['WANDB_API_KEY'])
 
 from dataloader import get_dataloaders
 from utils import get_model, save_config
