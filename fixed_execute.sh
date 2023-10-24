@@ -1,5 +1,4 @@
 echo $$
-source wandb.key.sh
 source environ/bin/activate
 CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=4 python3 fixed_main.py \
 	--project mixer-retrain-fixed \
