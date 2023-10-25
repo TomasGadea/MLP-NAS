@@ -42,7 +42,7 @@ def get_model(args):
         search_model.load_state_dict(
             torch.load(os.path.join(args.path_to_supernet, 'W.pt'))
         )
-        alphas = search_model.get_detached_alphas(aslist=True, activated=False)
+        alphas = search_model.get_detached_alphas(aslist=False, activated=False)
         model = search_model.net
         return model.to(args.device), alphas
 
