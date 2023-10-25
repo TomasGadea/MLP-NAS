@@ -64,13 +64,6 @@ if __name__ == '__main__':
     parser.add_argument('--cutmix-beta', type=float, default=1.0)
     parser.add_argument('--cutmix-prob', type=float, default=0.)
 
-    parser.add_argument('--patch-size', type=int, default=4)
-    parser.add_argument('--hidden-size', type=int, default=128)
-    parser.add_argument('--num-layers', type=int, default=8)
-    parser.add_argument('--drop-p', type=float, default=0.)
-    parser.add_argument('--off-act', action='store_true')
-    parser.add_argument('--is-cls-token', action='store_true')
-
     parser.add_argument('--discrete', action='store_true')
     parser.add_argument('--discrete-th', type=float, default=0.5)
 
