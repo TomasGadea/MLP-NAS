@@ -70,9 +70,7 @@ def get_model(args):
 def save_config(args):
     config = args.__dict__.copy()
     config['device'] = config['device'].__str__()
-    path = os.path.join(args.output, args.project, args.experiment)
-    if args.model == 'fixed-mixer':
-        path = os.path.join(path, f"{args.model}_{args.subexperiment}")
+    path = os.path.join(args.output, args.experiment)
     os.makedirs(path, exist_ok=True)
     with open(path + '/params.json', 'w') as ff:
         json.dump(config, ff, indent=4, sort_keys=True)
