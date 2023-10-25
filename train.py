@@ -16,8 +16,6 @@ from utils import rand_bbox
 
 class Trainer(object):
     def __init__(self, model, args):
-        wandb.config.update(args, allow_val_change=True)
-
         self.model = model
 
         self.device = args.device
@@ -32,6 +30,9 @@ class Trainer(object):
         self.n_cells = args.n_cells
         self.hidden_s_candidates = args.hidden_s_candidates
         self.hidden_c_candidates = args.hidden_c_candidates
+        self.wandb = args.wandb
+        if self.wandb:
+            wandb.config.update(args, allow_val_change=True)
 
         self.mixup_fn = Mixup(
             cutmix_alpha=self.cutmix_beta,
@@ -161,25 +162,26 @@ class Trainer(object):
             self.epoch_friction /= num_tr_imgs
             self.epoch_tr_acc = self.epoch_tr_corr / num_tr_imgs
 
-            wandb.log({
-                'w_lr': self.scheduler.get_last_lr()[0],
-                'epoch_tr_loss': self.epoch_tr_loss,
-                'epoch_L01_loss': self.epoch_L01_loss,
-                'friction': self.model.friction().item(),
-                'mmc': self.model.L1L2_reg().item(),
-                'epoch_tr_acc': self.epoch_tr_acc
-                }, step=epoch
-            )
-            alphas = self.model.get_detached_alphas(aslist=True)
-            for i in range(self.n_cells):
-                for j in range(len(self.hidden_s_candidates)):
-                    wandb.log({
-                        f'a_cell{i}_Ds_{self.hidden_s_candidates[j]}': alphas[i][0][j],
-                    }, step=epoch)
-                for j in range(len(self.hidden_c_candidates)):
-                    wandb.log({
-                        f'a_cell{i}_Dc_{self.hidden_c_candidates[j]}': alphas[i][1][j],
-                    }, step=epoch)
+            if self.wandb:
+                wandb.log({
+                    'w_lr': self.scheduler.get_last_lr()[0],
+                    'epoch_tr_loss': self.epoch_tr_loss,
+                    'epoch_L01_loss': self.epoch_L01_loss,
+                    'friction': self.model.friction().item(),
+                    'mmc': self.model.L1L2_reg().item(),
+                    'epoch_tr_acc': self.epoch_tr_acc
+                    }, step=epoch
+                )
+                alphas = self.model.get_detached_alphas(aslist=True)
+                for i in range(self.n_cells):
+                    for j in range(len(self.hidden_s_candidates)):
+                        wandb.log({
+                            f'a_cell{i}_Ds_{self.hidden_s_candidates[j]}': alphas[i][0][j],
+                        }, step=epoch)
+                    for j in range(len(self.hidden_c_candidates)):
+                        wandb.log({
+                            f'a_cell{i}_Dc_{self.hidden_c_candidates[j]}': alphas[i][1][j],
+                        }, step=epoch)
 
             df['epoch'].append(epoch)
             df['train_acc'].append(self.epoch_tr_acc.item())
@@ -200,11 +202,12 @@ class Trainer(object):
             ################################################  LOGGING  #################################################
             self.epoch_loss /= num_imgs
             self.epoch_acc = self.epoch_corr / num_imgs
-            wandb.log({
-                'val_loss': self.epoch_loss,
-                'val_acc': self.epoch_acc
-                }, step=epoch
-            )
+            if self.wandb:
+                wandb.log({
+                    'val_loss': self.epoch_loss,
+                    'val_acc': self.epoch_acc
+                    }, step=epoch
+                )
             df['valid_loss'].append(self.epoch_loss.item())
             df['valid_acc'].append(self.epoch_acc.item())
             ############################################################################################################
@@ -217,11 +220,12 @@ class Trainer(object):
                     num_imgs += len(test_X)
                 self.test_loss /= num_imgs
                 self.test_acc = self.test_corr / num_imgs
-                wandb.log({
-                    'test_loss': self.test_loss,
-                    'test_acc': self.test_acc
-                }, step=epoch
-                )
+                if self.wandb:
+                    wandb.log({
+                        'test_loss': self.test_loss,
+                        'test_acc': self.test_acc
+                    }, step=epoch
+                    )
                 df['test_loss'].append(self.test_loss.item())
                 df['test_acc'].append(self.test_acc.item())
                 # save model weights
@@ -244,7 +248,6 @@ class Trainer(object):
 
 class VanillaTrainer(object):
     def __init__(self, model, args):
-        wandb.config.update(args, allow_val_change=True)
         self.model = model
         self.device = args.device
         self.clip_grad = args.fixed_clip_grad
@@ -255,6 +258,8 @@ class VanillaTrainer(object):
         self.label_smoothing = args.fixed_label_smoothing
         self.fixed_optimizer = args.fixed_optimizer
         self.wandb = args.wandb
+        if self.wandb:
+            wandb.config.update(args, allow_val_change=True)
 
         if args.fixed_optimizer == 'SGD':
             self.optimizer = optim.SGD(self.model.parameters(), lr=args.fixed_lr, momentum=args.fixed_momentum,

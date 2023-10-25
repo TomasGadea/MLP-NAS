@@ -5,9 +5,6 @@ import random
 import wandb
 import os
 import json
-config = json.load(open('api_key.config'))
-os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
-wandb.login(key=os.environ['WANDB_API_KEY'])
 
 from dataloader import get_dataloaders
 from utils import get_model, save_config
@@ -16,12 +13,19 @@ from fixed_main import main as f_main
 
 def main(args):
     print(f"PID: {os.getpid()}")
-    with wandb.init(project=args.project, config=args, name=args.experiment):
-        save_config(args)
-        train_dl, valid_dl, test_dl = get_dataloaders(args)
-        model = get_model(args)
-        trainer = Trainer(model, args)
-        trainer.fit(train_dl, valid_dl, test_dl, args)
+
+    if args.wandb:
+        config = json.load(open('api_key.config'))
+        os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
+        wandb.login(key=os.environ['WANDB_API_KEY'])
+        wandb.init(project=args.project, config=args, name=args.experiment)
+
+
+    save_config(args)
+    train_dl, valid_dl, test_dl = get_dataloaders(args)
+    model = get_model(args)
+    trainer = Trainer(model, args)
+    trainer.fit(train_dl, valid_dl, test_dl, args)
 
     if args.retrain_fixed:
         args.path = os.path.join(args.output, args.project, args.experiment)
@@ -84,6 +88,8 @@ if __name__ == '__main__':
     parser.add_argument('--w-min-lr', type=float, default=1e-6)
     parser.add_argument('--warmup-epochs', type=int, default=5)
     parser.add_argument('--unrolled', action='store_true')
+
+    parser.add_argument('--wandb', action='store_true')
 
 
 
