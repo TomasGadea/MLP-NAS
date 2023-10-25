@@ -21,6 +21,7 @@ def get_model(args):
             off_act=args.off_act,
             is_cls_token=args.is_cls_token
         )
+
     elif args.model == 'fixed-mixer':
         from models import SearchController, FixedMixer
         search_model = SearchController(
@@ -40,7 +41,10 @@ def get_model(args):
         search_model.load_state_dict(
             torch.load(os.path.join(args.path, f"W-search_mixer_{args.dataset}_last.pt"))
         )
-        model = FixedMixer(search_model, args)
+        alphas = search_model.get_detached_alphas(aslist=True, activated=False)
+        model = search_model.net
+        return model.to(args.device), alphas
+
     elif args.model == 'mlp-mixer':
         from models import MLPMixer
         model = MLPMixer(

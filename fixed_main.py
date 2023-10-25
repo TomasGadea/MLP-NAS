@@ -25,8 +25,8 @@ def main(args):
 
     save_config(args)
     train_dl, valid_dl, test_dl = get_dataloaders(args)
-    fixed_model = get_model(args)
-    v_trainer = VanillaTrainer(fixed_model, args)
+    fixed_model, alphas = get_model(args)
+    v_trainer = VanillaTrainer(fixed_model, alphas, args)
     v_trainer.fit(train_dl, valid_dl, test_dl, args)
 
 
