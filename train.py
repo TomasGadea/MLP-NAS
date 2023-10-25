@@ -229,7 +229,7 @@ class Trainer(object):
                 df['test_loss'].append(self.test_loss.item())
                 df['test_acc'].append(self.test_acc.item())
                 # save model weights
-                path = os.path.join(args.output, args.project, args.experiment)
+                path = os.path.join(args.output, args.experiment)
                 os.makedirs(path, exist_ok=True)
                 torch.save(self.model.state_dict(), os.path.join(path, 'W_test.pt'))
             else:
@@ -238,7 +238,7 @@ class Trainer(object):
 
 
             # save model weights
-            path = os.path.join(args.output, args.project, args.experiment)
+            path = os.path.join(args.output, args.experiment)
             os.makedirs(path, exist_ok=True)
             torch.save(self.model.state_dict(), os.path.join(path, 'W.pt'))
 
@@ -251,45 +251,45 @@ class VanillaTrainer(object):
         self.model = model
         self.alphas = alphas
         self.device = args.device
-        self.clip_grad = args.fixed_clip_grad
-        self.cutmix_beta = args.fixed_cutmix_beta
-        self.cutmix_prob = args.fixed_cutmix_prob
+        self.clip_grad = args.clip_grad
+        self.cutmix_beta = args.cutmix_beta
+        self.cutmix_prob = args.cutmix_prob
         print("self.cutmix_beta:", self.cutmix_beta)
         print("self.cutmix_prob:", self.cutmix_prob)
-        self.label_smoothing = args.fixed_label_smoothing
-        self.fixed_optimizer = args.fixed_optimizer
+        self.label_smoothing = args.label_smoothing
+        self.optimizer = args.optimizer
         self.wandb = args.wandb
         if self.wandb:
             wandb.config.update(args, allow_val_change=True)
 
-        if args.fixed_optimizer == 'SGD':
-            self.optimizer = optim.SGD(self.model.parameters(), lr=args.fixed_lr, momentum=args.fixed_momentum,
-                                       weight_decay=args.fixed_weight_decay, nesterov=args.nesterov)
-        elif args.fixed_optimizer == 'Adam':
-            self.optimizer = optim.Adam(self.model.parameters(), lr=args.fixed_lr, betas=(args.fixed_beta1, args.fixed_beta2),
-                                        weight_decay=args.fixed_weight_decay)
+        if args.optimizer == 'SGD':
+            self.optimizer = optim.SGD(self.model.parameters(), lr=args.lr, momentum=args.momentum,
+                                       weight_decay=args.weight_decay, nesterov=args.nesterov)
+        elif args.optimizer == 'Adam':
+            self.optimizer = optim.Adam(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2),
+                                        weight_decay=args.weight_decay)
         else:
-            raise ValueError(f"No such optimizer: {self.fixed_optimizer}")
+            raise ValueError(f"No such optimizer: {self.optimizer}")
 
-        if args.fixed_scheduler == 'step':
+        if args.scheduler == 'step':
             self.base_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer,
-                                                                 milestones=[args.fixed_epochs // 2, 3 * args.fixed_epochs // 4],
-                                                                 gamma=args.fixed_gamma)
-        elif args.fixed_scheduler == 'cosine':
-            self.base_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=args.fixed_epochs,
-                                                                             eta_min=args.fixed_min_lr)
+                                                                 milestones=[args.epochs // 2, 3 * args.epochs // 4],
+                                                                 gamma=args.gamma)
+        elif args.scheduler == 'cosine':
+            self.base_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=args.epochs,
+                                                                             eta_min=args.min_lr)
         else:
             raise ValueError(f"No such scheduler: {self.scheduler}")
 
-        if args.fixed_warmup_epoch:
+        if args.warmup_epoch:
             self.scheduler = warmup_scheduler.GradualWarmupScheduler(self.optimizer, multiplier=1.,
-                                                                     total_epoch=args.fixed_warmup_epoch,
+                                                                     total_epoch=args.warmup_epoch,
                                                                      after_scheduler=self.base_scheduler)
         else:
             self.scheduler = self.base_scheduler
         self.scaler = torch.cuda.amp.GradScaler()
 
-        self.epochs = args.fixed_epochs
+        self.epochs = args.epochs
         # self.criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
         self.criterion = nn.CrossEntropyLoss()
 
@@ -385,10 +385,7 @@ class VanillaTrainer(object):
                 )
 
             # save model weights
-            path = os.path.join(args.output, args.project, args.experiment)
-            if args.model == 'fixed-mixer':
-                path = os.path.join(path, f"fixed_{args.subexperiment}")
-
+            path = os.path.join(args.output, args.experiment)
             os.makedirs(path, exist_ok=True)
             torch.save(self.model.state_dict(), os.path.join(path, 'W.pt'))
 
