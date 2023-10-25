@@ -17,19 +17,20 @@ def main(args):
     if args.model == 'fixed-mixer':
         name += f"_{args.subexperiment}"
 
-    with wandb.init(project=args.project, config=args, name=name):
-        save_config(args)
-        train_dl, valid_dl, test_dl = get_dataloaders(args)
-        fixed_model = get_model(args)
-        v_trainer = VanillaTrainer(fixed_model, args)
-        v_trainer.fit(train_dl, valid_dl, test_dl, args)
+    if args.wandb:
+        config = json.load(open('api_key.config'))
+        os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
+        wandb.login(key=os.environ['WANDB_API_KEY'])
+        wandb.init(project=args.project, config=args, name=name)
+
+    save_config(args)
+    train_dl, valid_dl, test_dl = get_dataloaders(args)
+    fixed_model = get_model(args)
+    v_trainer = VanillaTrainer(fixed_model, args)
+    v_trainer.fit(train_dl, valid_dl, test_dl, args)
 
 
 if __name__ == '__main__':
-    print("NAME IS MAIIIIIN")
-    config = json.load(open('api_key.config'))
-    os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
-    wandb.login(key=os.environ['WANDB_API_KEY'])
     parser = argparse.ArgumentParser()
     # data
     parser.add_argument('--project', type=str, default=f"new_project")
@@ -72,6 +73,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--discrete', action='store_true')
     parser.add_argument('--discrete-th', type=float, default=0.5)
+
+    parser.add_argument('--wandb', action='store_true')
 
 
     args = parser.parse_args()

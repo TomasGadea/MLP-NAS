@@ -254,6 +254,7 @@ class VanillaTrainer(object):
         print("self.cutmix_prob:", self.cutmix_prob)
         self.label_smoothing = args.fixed_label_smoothing
         self.fixed_optimizer = args.fixed_optimizer
+        self.wandb = args.wandb
 
         if args.fixed_optimizer == 'SGD':
             self.optimizer = optim.SGD(self.model.parameters(), lr=args.fixed_lr, momentum=args.fixed_momentum,
@@ -351,12 +352,13 @@ class VanillaTrainer(object):
             df['train_loss'].append(self.epoch_tr_loss.item())
             df['friction'].append(self.epoch_friction)
 
-            wandb.log({
-                'epoch_tr_loss': self.epoch_tr_loss,
-                'epoch_friction': self.epoch_friction,
-                'epoch_tr_acc': self.epoch_tr_acc
-            }, step=epoch
-            )
+            if self.wandb:
+                wandb.log({
+                    'epoch_tr_loss': self.epoch_tr_loss,
+                    'epoch_friction': self.epoch_friction,
+                    'epoch_tr_acc': self.epoch_tr_acc
+                }, step=epoch
+                )
 
             num_imgs = 0.
             self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
@@ -369,11 +371,12 @@ class VanillaTrainer(object):
             df['valid_loss'].append(self.epoch_loss.item())
             df['valid_acc'].append(self.epoch_acc.item())
 
-            wandb.log({
-                'val_loss': self.epoch_loss,
-                'val_acc': self.epoch_acc
-            }, step=epoch
-            )
+            if self.wandb:
+                wandb.log({
+                    'val_loss': self.epoch_loss,
+                    'val_acc': self.epoch_acc
+                }, step=epoch
+                )
 
             # save model weights
             path = os.path.join(args.output, args.project, args.experiment)
