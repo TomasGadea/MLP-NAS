@@ -125,11 +125,14 @@ class SearchController(nn.Module):
     def weights(self):
         return self.net.parameters()
 
-    def get_detached_alphas(self, aslist=False, th=None):
+    def get_detached_alphas(self, aslist=False, th=None, activated=True):
         detached = []
         for a in self.alphas:
             if isinstance(a, torch.Tensor):
-                d = F.sigmoid(a.detach())
+                if activated:
+                    d = F.sigmoid(a.detach())
+                else:
+                    d = a.detach()
                 if th is not None:
                     d = torch.where(d >= th, 1, 0)
                 if aslist:
@@ -138,7 +141,10 @@ class SearchController(nn.Module):
                 d = []
                 for p in a:
                     if isinstance(p, torch.Tensor):
-                        p = F.sigmoid(p.detach())
+                        if activated:
+                            p = F.sigmoid(p.detach())
+                        else:
+                            p = p.detach()
                         if th is not None:
                             p = torch.where(p >= th, 1, 0)
                         if aslist:
@@ -185,51 +191,6 @@ class SearchMixer(nn.Module):
         out = out[:, 0] if self.is_cls_token else out.mean(dim=1)
         out = self.clf(out)
         return out
-
-
-class FixedMixer(nn.Module):
-    def __init__(self, m, args):
-        super(FixedMixer, self).__init__()
-        num_patches = m.img_size // m.patch_size * m.img_size // m.patch_size
-        # (b, c, h, w) -> (b, d, h//p, w//p) -> (b, h//p*w//p, d)
-        self.is_cls_token = m.is_cls_token
-
-        self.patch_emb = nn.Sequential(
-            nn.Conv2d(m.in_channels, m.hidden_size ,kernel_size=m.patch_size, stride=m.patch_size),
-            Rearrange('b d h w -> b (h w) d')
-        )
-
-        if self.is_cls_token:
-            self.cls_token = nn.Parameter(torch.randn(1, 1, m.hidden_size))
-            num_patches += 1
-
-        if args.discrete:
-            self.alphas = m.get_detached_alphas(aslist=False, th=args.discrete_th)
-        else:
-            self.alphas = m.get_detached_alphas(aslist=False)
-
-        print(f"fixed_alphas = {self.alphas}")
-        
-        self.cells = nn.ModuleList()
-        for i in range(m.n_cells):
-            cell = C.SearchCellMixer(num_patches, m.hidden_size, m.hidden_s_candidates, m.hidden_c_candidates, m.drop_p, m.off_act)
-            self.cells.append(cell)
-
-        self.ln = nn.LayerNorm(m.hidden_size)
-
-        self.clf = nn.Linear(m.hidden_size, m.num_classes)
-
-    def forward(self, x):
-        out = self.patch_emb(x)
-        if self.is_cls_token:
-            out = torch.cat([self.cls_token.repeat(out.size(0),1,1), out], dim=1)
-        for k, cell in enumerate(self.cells):
-            out = cell(out, self.alphas[k])
-        out = self.ln(out)
-        out = out[:, 0] if self.is_cls_token else out.mean(dim=1)
-        out = self.clf(out)
-        return out
-
 
 
 
