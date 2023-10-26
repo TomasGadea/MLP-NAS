@@ -16,7 +16,7 @@ def main(args):
     print(f"PID: {os.getpid()}")
 
     if args.wandb:
-        config = json.load(open('api_key.config'))
+        config = json.load(open('config.json'))
         os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
         wandb.login(key=os.environ['WANDB_API_KEY'])
         wandb.init(project=args.project, config=args, name=args.experiment)

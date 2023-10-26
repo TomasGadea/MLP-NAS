@@ -143,4 +143,4 @@ dmypy.json
 out/
 
 # config files
-*.config
+*config*

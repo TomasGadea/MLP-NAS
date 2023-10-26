@@ -19,7 +19,7 @@ def main(args):
         name = f"{args.model}_{args.experiment}"
         if args.model == 'fixed-mixer':
             name += f"_{args.subexperiment}"
-        config = json.load(open('api_key.config'))
+        config = json.load(open('config.json'))
         os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
         wandb.login(key=os.environ['WANDB_API_KEY'])
         wandb.init(project=args.project, config=args, name=name)
