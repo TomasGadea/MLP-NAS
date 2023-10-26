@@ -11,9 +11,6 @@ import os
 
 
 def get_dataloaders(args):
-    print()
-    print("args in fucking dataloader: ", args)
-    print()
     g = torch.Generator()
     g.manual_seed(args.seed)
 
