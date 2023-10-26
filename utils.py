@@ -24,7 +24,7 @@ def get_model(args):
 
     elif args.model == 'fixed-mixer':
         supernet_params = json.load(open(os.path.join(args.path_to_supernet, 'params.json')))
-        from models import SearchController
+        from models import SearchController, FixedMixer
         search_model = SearchController(
             device=args.device,
             in_channels=3,
@@ -43,8 +43,7 @@ def get_model(args):
             torch.load(os.path.join(args.path_to_supernet, 'W.pt'))
         )
         alphas = search_model.get_detached_alphas(aslist=False, activated=False)
-        model = search_model.net
-        return model.to(args.device), alphas
+        model = FixedMixer(search_model.net, alphas)
 
     elif args.model == 'mlp-mixer':
         from models import MLPMixer

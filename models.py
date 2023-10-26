@@ -193,7 +193,14 @@ class SearchMixer(nn.Module):
         return out
 
 
+class FixedMixer(nn.Module):
+    def __init__(self, alphas, model):
+        super(FixedMixer, self).__init__()
+        self.alphas = alphas
+        self.model = model
 
+    def forward(self, x):
+        return self.model(x, self.alphas)
 
 
 

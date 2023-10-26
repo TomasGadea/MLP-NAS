@@ -247,9 +247,8 @@ class Trainer(object):
 
 
 class VanillaTrainer(object):
-    def __init__(self, model, alphas, args):
+    def __init__(self, model, args):
         self.model = model
-        self.alphas = alphas
         self.device = args.device
         self.clip_grad = args.clip_grad
         self.cutmix_beta = args.cutmix_beta
@@ -307,7 +306,7 @@ class VanillaTrainer(object):
 
         # compute output
         with torch.cuda.amp.autocast():
-            out = self.model(img, self.alphas)
+            out = self.model(img)
             loss = self.criterion(out, label)
 
         self.scaler.scale(loss).backward()
@@ -328,7 +327,7 @@ class VanillaTrainer(object):
         img, label = img.to(self.device), label.to(self.device)
 
         with torch.no_grad():
-            out = self.model(img, self.alphas)
+            out = self.model(img)
             loss = self.criterion(out, label)
 
         self.epoch_loss += loss * img.size(0)
