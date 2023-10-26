@@ -43,7 +43,7 @@ def get_dataloaders(args):
 
         train_ds = torchvision.datasets.ImageFolder(traindir, transform=train_transform)
         test_ds = torchvision.datasets.ImageFolder(valdir, transform=test_transform)
-        args.num_classes = 10
+        args.num_classes = 1000
 
     else:
         raise ValueError(f"No such dataset:{args.dataset}")
@@ -95,8 +95,10 @@ def get_transform(args):
         args.mean, args.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 
-    if args.dataset != "svhn":
+    if args.dataset not in ["svhn", "imagenet"]:
         train_transform_list = [transforms.RandomCrop(size=(args.size, args.size), padding=args.padding)]
+    elif args.dataset == 'imagenet':
+        train_transform_list = [transforms.Resize(size=(args.size, args.size))]
 
     if args.autoaugment:
         if args.dataset == 'c10' or args.dataset == 'c100':
