@@ -409,7 +409,6 @@ class VanillaTrainer(object):
                 wandb.log({
                     'epoch_tr_loss': self.epoch_tr_loss,
                     'epoch_tr_acc': self.epoch_tr_acc,
-                    'epoch_friction': self.model.friction().item(),
                     'epoch_mmc': self.model.mmc().item(),
                 }, step=epoch
                 )
