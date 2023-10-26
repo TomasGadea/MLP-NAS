@@ -79,6 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('--discrete-th', type=float, default=0.5)
 
     parser.add_argument('--wandb', action='store_true')
+    parser.add_argument('--use-amp', action='store_true')
 
 
     args = parser.parse_args()

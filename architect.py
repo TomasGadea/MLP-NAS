@@ -6,7 +6,7 @@ import copy
 class Architect():
     """ Compute gradients of alphas """
 
-    def __init__(self, net, w_momentum, w_weight_decay, a_optimizer):
+    def __init__(self, net, w_momentum, w_weight_decay, a_optimizer, use_amp=False):
         """
         Args:
             net
@@ -19,6 +19,8 @@ class Architect():
         self.w_momentum = w_momentum
         self.w_weight_decay = w_weight_decay
         self.a_optimizer = a_optimizer
+        # scaler
+        self.scaler = torch.cuda.amp.GradScaler() if use_amp else None
 
     def virtual_step(self, trn_X, trn_y, xi, w_optim):
         """
@@ -32,6 +34,7 @@ class Architect():
             xi: learning rate for virtual gradient step (same as weights lr)
             w_optim: weights optimizer
         """
+        #with torch.cuda.amp.autocast():
         # forward & calc loss
         loss = self.net.loss(trn_X, trn_y)  # L_trn(w)
 
@@ -66,10 +69,19 @@ class Architect():
         # print('alpha_grads: ', self.net.get_alpha_grads())  # should be None
         arch_loss = w01 * self.L_01(v_net=False)  # self.net.loss(val_X, val_y) + w01 * self.L_01(v_net=True) # L_trn(w)
         friction_loss = l * self.net.friction()
-        net_loss = self.net.loss(val_X, val_y)
-        loss = net_loss + arch_loss + friction_loss
-        loss.backward()
-        self.a_optimizer.step()
+
+        if self.scaler is not None:
+            with torch.cuda.amp.autocast():
+                net_loss = self.net.loss(val_X, val_y)
+                loss = net_loss + arch_loss + friction_loss
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.a_optimizer)
+            self.scaler.update()
+        else:
+            net_loss = self.net.loss(val_X, val_y)
+            loss = net_loss + arch_loss + friction_loss
+            loss.backward()
+            self.a_optimizer.step()
 
         # print('alpha_grads: ', self.net.get_alpha_grads())  # should be ≠ 0 or None
 

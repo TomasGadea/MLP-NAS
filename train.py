@@ -69,12 +69,12 @@ class Trainer(object):
             self.scheduler = self.base_scheduler
 
         # scaler
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = torch.cuda.amp.GradScaler() if args.use_amp else None
 
         self.epochs = args.epochs
 
         # Architect
-        self.architect = Architect(self.model, args.w_momentum, args.w_weight_decay, self.a_optimizer)
+        self.architect = Architect(self.model, args.w_momentum, args.w_weight_decay, self.a_optimizer, user_amp=args.use_amp)
 
         self.num_steps = 0
         self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
@@ -103,14 +103,26 @@ class Trainer(object):
 
         # phase 1. child network step (w)
         self.w_optimizer.zero_grad()
-        logits = self.model(trn_X)
-        loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
-        loss.backward()
+        if self.scaler is not None:
+            with torch.cuda.amp.autocast():
+                logits = self.model(trn_X)
+                loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
+            self.scaler.sccale(loss).backward()
+        else:
+            logits = self.model(trn_X)
+            loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
+            loss.backward()
 
         # gradient clipping
         if self.clip_grad:
             nn.utils.clip_grad_norm_(self.model.weights(), self.clip_grad)
-        self.w_optimizer.step()
+
+        if self.scaler is not None:
+            self.scaler.step(self.w_optimizer)
+            self.scaler.update()
+        else:
+            self.w_optimizer.step()
+
 
 
         # update metrics
@@ -132,9 +144,16 @@ class Trainer(object):
         self.model.eval()
         val_X, val_y = val_X.to(self.device), val_y.to(self.device)
 
-        with torch.no_grad():
-            logits = self.model(val_X)
-            loss = self.model.criterion(logits, val_y)
+        if self.scaler is not None:
+            with torch.cuda.amp.autocast():
+                with torch.no_grad():
+                    logits = self.model(val_X)
+                    loss = self.model.criterion(logits, val_y)
+        else:
+            with torch.no_grad():
+                logits = self.model(val_X)
+                loss = self.model.criterion(logits, val_y)
+
 
         if testing:
             self.test_loss += loss * len(val_X)
@@ -295,7 +314,9 @@ class VanillaTrainer(object):
                                                                      after_scheduler=self.base_scheduler)
         else:
             self.scheduler = self.base_scheduler
-        self.scaler = torch.cuda.amp.GradScaler()
+
+        # scaler
+        self.scaler = torch.cuda.amp.GradScaler() if args.use_amp else None
 
         self.epochs = args.epochs
         # self.criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
@@ -314,15 +335,24 @@ class VanillaTrainer(object):
         self.optimizer.zero_grad()
 
         # compute output
-        with torch.cuda.amp.autocast():
+        if self.scaler is not None:
+            with torch.cuda.amp.autocast():
+                out = self.model(img)
+                loss = self.criterion(out, label)
+            self.scaler.scale(loss).backward()
+        else:
             out = self.model(img)
             loss = self.criterion(out, label)
+            loss.backward()
 
-        self.scaler.scale(loss).backward()
         if self.clip_grad:
             nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad)
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
+
+        if self.scaler is not None:
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+        else:
+            self.optimizer.step()
 
         acc = out.argmax(dim=-1).eq(label.argmax(dim=-1)).sum(-1) / img.size(0)
 
@@ -335,9 +365,15 @@ class VanillaTrainer(object):
         img, label = batch
         img, label = img.to(self.device), label.to(self.device)
 
-        with torch.no_grad():
-            out = self.model(img)
-            loss = self.criterion(out, label)
+        if self.scaler is not None:
+            with torch.cuda.amp.autocast():
+                with torch.no_grad():
+                    out = self.model(img)
+                    loss = self.criterion(out, label)
+        else:
+            with torch.no_grad():
+                out = self.model(img)
+                loss = self.criterion(out, label)
 
         self.epoch_loss += loss * img.size(0)
         self.epoch_corr += out.argmax(dim=-1).eq(label).sum(-1)
