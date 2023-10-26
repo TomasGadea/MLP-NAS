@@ -2,4 +2,6 @@
 
 clone using: 
 
-```git clone --recurse-submodules [repo]```
+```
+git clone --recurse-submodules [repo]
+```
