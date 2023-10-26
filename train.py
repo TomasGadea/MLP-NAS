@@ -151,8 +151,11 @@ class Trainer(object):
             self.epoch_tr_loss, self.epoch_L01_loss, self.epoch_friction, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0., 0., 0.
 
             for batch_idx, ((trn_X, trn_y), (val_X, val_y)) in enumerate(zip(train_dl, valid_dl)):
+                print(f"{batch_idx}/{len(train_dl)} --> {batch_idx / len(train_dl):.2f}")
                 self._train_one_step(trn_X, trn_y, val_X, val_y, self.mixup_fn)
                 num_tr_imgs += len(trn_X)
+                if batch_idx == 3:
+                    break
 
             self.scheduler.step()
 
@@ -196,8 +199,11 @@ class Trainer(object):
             self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
 
             for batch_idx, (val_X, val_y) in enumerate(valid_dl):
+                print(f"{batch_idx}/{len(valid_dl)} --> {batch_idx / len(valid_dl):.2f}")
                 self._test_one_step(val_X, val_y)
                 num_imgs += len(val_X)
+                if batch_idx == 3:
+                    break
 
             ################################################  LOGGING  #################################################
             self.epoch_loss /= num_imgs
@@ -216,8 +222,11 @@ class Trainer(object):
                 num_imgs = 0.
                 self.test_loss, self.test_corr, self.test_acc = 0., 0., 0.
                 for batch_idx, (test_X, test_y) in enumerate(test_dl):
+                    print(f"{batch_idx}/{len(test_dl)} --> {batch_idx / len(test_dl):.2f}")
                     self._test_one_step(test_X, test_y, testing=True)
                     num_imgs += len(test_X)
+                    if batch_idx == 3:
+                        break
                 self.test_loss /= num_imgs
                 self.test_acc = self.test_corr / num_imgs
                 if self.wandb:
