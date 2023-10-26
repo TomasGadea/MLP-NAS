@@ -1,3 +1,4 @@
 # MLP-NAS
 
-clone using: `git clone --recurse-submodules [repo]`
+clone using: 
+```git clone --recurse-submodules [repo]```
