@@ -40,34 +40,16 @@ def get_dataloaders(args):
         config = json.load(open('config.json'))
         traindir = os.path.join(config['IMAGENET_PATH'], 'train')
         valdir = os.path.join(config['IMAGENET_PATH'], 'val')
-        testdir = os.path.join(config['IMAGENET_PATH'], 'test')
 
         train_ds = torchvision.datasets.ImageFolder(traindir, transform=train_transform)
-        valid_ds = torchvision.datasets.ImageFolder(valdir, transform=train_transform)
-        test_ds = torchvision.datasets.ImageFolder(testdir, transform=test_transform)
-
+        test_ds = torchvision.datasets.ImageFolder(valdir, transform=test_transform)
         args.num_classes = 10
-
-        train_dl = torch.utils.data.DataLoader(
-            train_ds, batch_size=args.batch_size, shuffle=False, sampler=None,
-            num_workers=args.num_workers, pin_memory=True, generator=g)
-
-        valid_dl = torch.utils.data.DataLoader(
-            valid_ds, batch_size=args.batch_size, shuffle=False, sampler=None,
-            num_workers=args.num_workers, pin_memory=True, generator=g)
-
-        test_dl = torch.utils.data.DataLoader(
-            test_ds, batch_size=args.eval_batch_size, shuffle=False, sampler=None,
-            num_workers=args.num_workers, pin_memory=True, generator=g)
-
-        return train_dl, valid_dl, test_dl
 
     else:
         raise ValueError(f"No such dataset:{args.dataset}")
 
     print(f"args.valid_ratio: {args.valid_ratio}")
     if args.valid_ratio > 0:
-        print("it was over zero!")
         num_train = len(train_ds)
         indices = list(range(num_train))
         split = int(np.floor(args.valid_ratio * num_train))
@@ -87,7 +69,8 @@ def get_dataloaders(args):
                                                num_workers=args.num_workers, pin_memory=True, generator=g)
         valid_dl = None
 
-    test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True, generator=g)
+    test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, shuffle=False,
+                                          num_workers=args.num_workers, pin_memory=True, generator=g)
 
     return train_dl, valid_dl, test_dl
 
