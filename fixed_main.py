@@ -9,7 +9,7 @@ import json
 from dataloader import get_dataloaders
 from utils import get_model, save_config
 from train import Trainer, VanillaTrainer
-
+from fvcore.nn import FlopCountAnalysis, parameter_count, flop_count_table
 
 
 def main(args):
@@ -24,9 +24,18 @@ def main(args):
         wandb.login(key=os.environ['WANDB_API_KEY'])
         wandb.init(project=args.project, config=args, name=name)
 
-    save_config(args)
     train_dl, valid_dl, test_dl = get_dataloaders(args)
     fixed_model = get_model(args)
+
+    # flops
+    input = torch.rand((1, 3, args.size, args.size))
+    flops = FlopCountAnalysis(fixed_model, input)
+    args.flops = flops.total()
+    args.n_params = parameter_count(fixed_model)['']
+    with open(os.path.join(args.output, "flops_table.txt"), "w") as text_file:
+        text_file.write(f"{flop_count_table(flops, max_depth=0)}")
+
+    save_config(args)
     v_trainer = VanillaTrainer(fixed_model, args)
     v_trainer.fit(train_dl, valid_dl, test_dl, args)
 

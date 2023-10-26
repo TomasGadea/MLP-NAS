@@ -10,6 +10,7 @@ from dataloader import get_dataloaders
 from utils import get_model, save_config
 from train import Trainer
 from fixed_main import main as f_main
+from fvcore.nn import FlopCountAnalysis, parameter_count, flop_count_table
 
 def main(args):
     print(f"PID: {os.getpid()}")
@@ -21,9 +22,18 @@ def main(args):
         wandb.init(project=args.project, config=args, name=args.experiment)
 
 
-    save_config(args)
     train_dl, valid_dl, test_dl = get_dataloaders(args)
     model = get_model(args)
+
+    # flops
+    input = torch.rand((1, 3, args.size, args.size))
+    flops = FlopCountAnalysis(model, input)
+    args.flops = flops.total()
+    args.n_params = parameter_count(model)['']
+    with open(os.path.join(args.output, "flops_table.txt"), "w") as text_file:
+        text_file.write(f"{flop_count_table(flops, max_depth=0)}")
+
+    save_config(args)
     trainer = Trainer(model, args)
     trainer.fit(train_dl, valid_dl, test_dl, args)
 
