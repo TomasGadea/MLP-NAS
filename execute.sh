@@ -33,23 +33,7 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 main.py \
 	--a-beta2 0.999 \
 	--a-weight-decay 0. \
 	--w-scheduler cosine \
-	--epochs 1 \
+	--epochs 10 \
 	--w-min-lr 1e-6 \
 	--warmup-epochs 5 \
-#	--retrain-fixed \
-#	--fixed-batch-size 256 \
-#	--fixed-eval-batch-size 1024 \
-#	--fixed-epochs 300 \
-#	--fixed-lr 1e-3 \
-#	--fixed-momentum 0.9 \
-#	--fixed-optimizer Adam \
-#	--fixed-scheduler cosine \
-#	--fixed-beta1 0.9 \
-#	--fixed-beta2 0.99 \
-#	--fixed-weight-decay 5e-5 \
-#	--fixed-label-smoothing 0.1 \
-#	--fixed-warmup-epoch 5 \
-#	--fixed-autoaugment \
-#	--fixed-clip-grad 0 \
-#	--fixed-cutmix-beta 1. \
-#	--fixed-cutmix-prob 0.5 \
+	--use-amp \

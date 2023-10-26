@@ -8,7 +8,7 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 fixed_main.py \
 	--eval-batch-size 1024 \
 	--autoaugment \
 	--valid-ratio 0. \
-	--epochs 1 \
+	--epochs 2 \
 	--lr 1e-3 \
 	--momentum 0.9 \
 	--optimizer Adam \
