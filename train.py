@@ -379,7 +379,8 @@ class VanillaTrainer(object):
         self.epoch_corr += out.argmax(dim=-1).eq(label).sum(-1)
 
     def fit(self, train_dl, valid_dl, test_dl, args):
-        df = {'epoch': [], 'train_loss': [], 'valid_loss': [], 'train_acc': [], 'valid_acc': [], 'friction': []}
+        df = {'epoch': [], 'train_loss': [], 'valid_loss': [], 'train_acc': [], 'valid_acc': [], 'friction': [],
+              'mmc': []}
         mixup_fn = Mixup(
             cutmix_alpha=self.cutmix_beta,
             prob=self.cutmix_prob,
@@ -388,7 +389,7 @@ class VanillaTrainer(object):
         )
         for epoch in trange(1, self.epochs + 1):
             num_tr_imgs = 0.
-            self.epoch_tr_loss, self.epoch_friction, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0., 0.
+            self.epoch_tr_loss, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0., 0.
             for batch_idx, batch in enumerate(train_dl):
                 print(f"{batch_idx}/{len(train_dl)} --> {batch_idx / len(train_dl):.2f}")
                 if batch_idx == 3:
@@ -403,13 +404,15 @@ class VanillaTrainer(object):
             df['epoch'].append(epoch)
             df['train_acc'].append(self.epoch_tr_acc.item())
             df['train_loss'].append(self.epoch_tr_loss.item())
-            df['friction'].append(self.epoch_friction)
+            df['friction'].append(self.model.friction().item())
+            df['mmc'].append(self.model.L1L2_reg().item())
 
             if self.wandb:
                 wandb.log({
                     'epoch_tr_loss': self.epoch_tr_loss,
-                    'epoch_friction': self.epoch_friction,
-                    'epoch_tr_acc': self.epoch_tr_acc
+                    'epoch_tr_acc': self.epoch_tr_acc,
+                    'epoch_friction': self.model.friction().item(),
+                    'epoch_mmc': self.model.L1L2_reg().item(),
                 }, step=epoch
                 )
 
