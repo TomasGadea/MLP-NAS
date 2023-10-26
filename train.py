@@ -74,7 +74,7 @@ class Trainer(object):
         self.epochs = args.epochs
 
         # Architect
-        self.architect = Architect(self.model, args.w_momentum, args.w_weight_decay, self.a_optimizer, user_amp=args.use_amp)
+        self.architect = Architect(self.model, args.w_momentum, args.w_weight_decay, self.a_optimizer, use_amp=args.use_amp)
 
         self.num_steps = 0
         self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
@@ -107,7 +107,7 @@ class Trainer(object):
             with torch.cuda.amp.autocast():
                 logits = self.model(trn_X)
                 loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
-            self.scaler.sccale(loss).backward()
+            self.scaler.scale(loss).backward()
         else:
             logits = self.model(trn_X)
             loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
@@ -389,7 +389,10 @@ class VanillaTrainer(object):
         for epoch in trange(1, self.epochs + 1):
             num_tr_imgs = 0.
             self.epoch_tr_loss, self.epoch_friction, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0., 0.
-            for batch in train_dl:
+            for batch_idx, batch in enumerate(train_dl):
+                print(f"{batch_idx}/{len(train_dl)} --> {batch_idx / len(train_dl):.2f}")
+                if batch_idx == 3:
+                    break
                 self._train_one_step(batch, mixup_fn)
                 num_tr_imgs += batch[0].size(0)
             self.epoch_tr_loss /= num_tr_imgs
@@ -412,7 +415,10 @@ class VanillaTrainer(object):
 
             num_imgs = 0.
             self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
-            for batch in test_dl:
+            for batch_idx, batch in enumerate(test_dl):
+                print(f"{batch_idx}/{len(test_dl)} --> {batch_idx / len(test_dl):.2f}")
+                if batch_idx == 3:
+                    break
                 self._test_one_step(batch)
                 num_imgs += batch[0].size(0)
             self.epoch_loss /= num_imgs

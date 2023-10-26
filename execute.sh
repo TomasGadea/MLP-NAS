@@ -1,8 +1,7 @@
 echo $$
 source environ/bin/activate
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=4 python3 main.py \
-	--project c100-comparison \
-	--dataset c100 \
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 main.py \
+	--dataset imagenet \
 	--valid-ratio 0.5 \
 	--batch-size 256 \
 	--num-workers 4 \
@@ -34,7 +33,7 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=4 python3 main.py \
 	--a-beta2 0.999 \
 	--a-weight-decay 0. \
 	--w-scheduler cosine \
-	--epochs 300 \
+	--epochs 1 \
 	--w-min-lr 1e-6 \
 	--warmup-epochs 5 \
 #	--retrain-fixed \
