@@ -4,8 +4,11 @@ sys.path.append('./AutoAugment/')
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from AutoAugment.autoaugment import CIFAR10Policy, SVHNPolicy
+from AutoAugment.autoaugment import CIFAR10Policy, SVHNPolicy, ImageNetPolicy
 import numpy as np
+import json
+import os
+
 
 def get_dataloaders(args):
     print()
@@ -32,6 +35,33 @@ def get_dataloaders(args):
         train_ds = torchvision.datasets.STL10('./datasets', split='train', transform=train_transform, download=True)
         test_ds = torchvision.datasets.STL10('./datasets', split='test', transform=test_transform, download=True)
         args.num_classes = 10
+
+    elif args.dataset == 'imagenet':
+        config = json.load(open('config.json'))
+        traindir = os.path.join(config['IMAGENET_PATH'], 'train')
+        valdir = os.path.join(config['IMAGENET_PATH'], 'val')
+        testdir = os.path.join(config['IMAGENET_PATH'], 'test')
+
+        train_ds = torchvision.datasets.ImageFolder(traindir, transform=train_transform)
+        valid_ds = torchvision.datasets.ImageFolder(valdir, transform=train_transform)
+        test_ds = torchvision.datasets.ImageFolder(testdir, transform=test_transform)
+
+        args.num_classes = 10
+
+        train_dl = torch.utils.data.DataLoader(
+            train_ds, batch_size=args.batch_size, shuffle=False, sampler=None,
+            num_workers=args.num_workers, pin_memory=True, generator=g)
+
+        valid_dl = torch.utils.data.DataLoader(
+            valid_ds, batch_size=args.batch_size, shuffle=False, sampler=None,
+            num_workers=args.num_workers, pin_memory=True, generator=g)
+
+        test_dl = torch.utils.data.DataLoader(
+            test_ds, batch_size=args.eval_batch_size, shuffle=False, sampler=None,
+            num_workers=args.num_workers, pin_memory=True, generator=g)
+
+        return train_dl, valid_dl, test_dl
+
     else:
         raise ValueError(f"No such dataset:{args.dataset}")
 
@@ -75,19 +105,23 @@ def get_transform(args):
         elif args.dataset == 'stl10':
             args.mean, args.std = [0.4914, 0.4822, 0.4465], [0.2471, 0.2435, 0.2616]
             args.size = 96
-    else:
+
+    elif args.dataset == 'imagenet':
         args.padding = 28
         args.size = 224
         args.mean, args.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    train_transform_list = [transforms.RandomCrop(size=(args.size, args.size), padding=args.padding)]
+
+
     if args.dataset != "svhn":
-        train_transform_list.append(transforms.RandomCrop(size=(args.size, args.size), padding=args.padding))
+        train_transform_list = [transforms.RandomCrop(size=(args.size, args.size), padding=args.padding)]
 
     if args.autoaugment:
         if args.dataset == 'c10' or args.dataset == 'c100':
             train_transform_list.append(CIFAR10Policy())
         elif args.dataset == 'svhn':
             train_transform_list.append(SVHNPolicy())
+        elif args.dataset == 'imagenet':
+            train_transform_list.append(ImageNetPolicy())
         else:
             print(f"No AutoAugment for {args.dataset}")   
 
