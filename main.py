@@ -101,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--unrolled', action='store_true')
 
     parser.add_argument('--wandb', action='store_true')
+    parser.add_argument('--use-amp', action='store_true')
 
 
 
