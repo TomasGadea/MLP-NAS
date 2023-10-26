@@ -52,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--eval-batch-size', type=int, default=1024)
     parser.add_argument('--seed', type=int, default=random.randint(1, 1e5))
-    parser.add_argument('--dataset', required=True, choices=['c10', 'c100', 'svhn', 'stl10'])
+    parser.add_argument('--dataset', required=True, choices=['c10', 'c100', 'svhn', 'stl10', 'imagenet'])
     parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--autoaugment', action='store_true')
     parser.add_argument('--valid-ratio', type=float, default=0.)
