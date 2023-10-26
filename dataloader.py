@@ -116,12 +116,26 @@ def get_transform(args):
             )
         ]
     )
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=args.mean,
-            std=args.std
-        )
-    ])
+
+    if  args.dataset == 'imagenet':
+        test_transform_list = [transforms.Resize(size=(args.size, args.size))]
+        test_transform = transforms.Compose(
+                test_transform_list+[
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=args.mean,
+                        std=args.std
+                    )
+                ]
+            )
+
+    else:
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=args.mean,
+                std=args.std
+            )
+        ])
 
     return train_transform, test_transform
