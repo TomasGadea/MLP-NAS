@@ -26,11 +26,12 @@ def main(args):
     model = get_model(args)
 
     # flops
-    input = torch.rand((1, 3, args.size, args.size))
+    input = torch.rand((1, 3, args.size, args.size)).to(args.device)
     flops = FlopCountAnalysis(model, input)
     args.flops = flops.total()
     args.n_params = parameter_count(model)['']
-    with open(os.path.join(args.output, "flops_table.txt"), "w") as text_file:
+    os.makedirs(os.path.join(args.output, args.experiment), exist_ok=True)
+    with open(os.path.join(args.output, args.experiment, "flops_table.txt"), "w") as text_file:
         text_file.write(f"{flop_count_table(flops, max_depth=0)}")
 
     save_config(args)
