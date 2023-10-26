@@ -103,14 +103,17 @@ class Trainer(object):
 
         # phase 1. child network step (w)
         self.w_optimizer.zero_grad()
-        logits = self.model(trn_X)
-        loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
-        loss.backward()
+        with torch.cuda.amp.autocast():
+            logits = self.model(trn_X)
+            loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
+        self.scaler.sccale(loss).backward()
 
         # gradient clipping
         if self.clip_grad:
             nn.utils.clip_grad_norm_(self.model.weights(), self.clip_grad)
-        self.w_optimizer.step()
+
+        self.scaler.step(self.w_optimizer)
+        self.scaler.update()
 
 
         # update metrics
@@ -132,9 +135,10 @@ class Trainer(object):
         self.model.eval()
         val_X, val_y = val_X.to(self.device), val_y.to(self.device)
 
-        with torch.no_grad():
-            logits = self.model(val_X)
-            loss = self.model.criterion(logits, val_y)
+        with torch.cuda.amp.autocast():
+            with torch.no_grad():
+                logits = self.model(val_X)
+                loss = self.model.criterion(logits, val_y)
 
         if testing:
             self.test_loss += loss * len(val_X)
@@ -286,6 +290,8 @@ class VanillaTrainer(object):
                                                                      after_scheduler=self.base_scheduler)
         else:
             self.scheduler = self.base_scheduler
+
+        # scaler
         self.scaler = torch.cuda.amp.GradScaler()
 
         self.epochs = args.epochs
@@ -326,9 +332,10 @@ class VanillaTrainer(object):
         img, label = batch
         img, label = img.to(self.device), label.to(self.device)
 
-        with torch.no_grad():
-            out = self.model(img)
-            loss = self.criterion(out, label)
+        with torch.cuda.amp.autocast():
+            with torch.no_grad():
+                out = self.model(img)
+                loss = self.criterion(out, label)
 
         self.epoch_loss += loss * img.size(0)
         self.epoch_corr += out.argmax(dim=-1).eq(label).sum(-1)
