@@ -61,7 +61,7 @@ class SearchController(nn.Module):
         logits = self.forward(X)
         return self.criterion(logits, y)
 
-    def L1L2_reg(self, gated=True):
+    def mmc(self, gated=True):
         """
         we get: torch.nn.parameter.Parameter
         c --> cell index
@@ -172,6 +172,9 @@ class SearchMixer(nn.Module):
             self.cls_token = nn.Parameter(torch.randn(1, 1, hidden_size))
             num_patches += 1
 
+        self.n_cells = n_cells
+        self.hidden_s_candidates = hidden_s_candidates
+        self.hidden_c_candidates = hidden_c_candidates
         self.cells = nn.ModuleList()
         for i in range(n_cells):
             cell = C.SearchCellMixer(num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act)
@@ -201,6 +204,37 @@ class FixedMixer(nn.Module):
 
     def forward(self, x):
         return self.model(x, self.alphas)
+
+    def mmc(self, gated=True):
+        all_W = []
+        all_alphas = []
+        for c in range(self.model.n_cells):
+            for i in range(len(self.model.hidden_s_candidates)):
+                all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][0].weight)
+                all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][3].weight)
+                all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                #         ^
+                #         |___ append second time since in and out W belong to the same mixed_op with the same alpha
+            for j in range(len(self.model.hidden_c_candidates)):
+                all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][0].weight)
+                all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][3].weight)
+                all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                #         ^
+                #         |___ append second time since in and out W belong to the same mixed_op with the same alpha
+        all_W.append(self.model.clf.weight)
+
+        #all_W = [getattr(self, f'U{i}{j}').weight for j in range(1, self.n_nodes - 1) for i in range(0, j)]
+        # all_W = [getattr(self, f'U{i}').weight for i in range(self.n_nodes - 1)]
+
+        if gated:
+            row_reg = torch.cat([a * torch.norm(W, p=2, dim=1) for a, W in zip(all_alphas, all_W)])  # 1 x (L*H)
+        else:
+            row_reg = torch.cat([torch.norm(W, p=2, dim=1) for W in all_W])  # 1 x (L*H)
+
+        reg = torch.norm(row_reg, p=1)  # 1 x 1
+        return reg
 
 
 
@@ -249,7 +283,7 @@ class MLPMixer(nn.Module):
         out = self.clf(out)
         return out
 
-    def L1L2_reg(self):
+    def mmc(self):
         """
         we get: torch.nn.parameter.Parameter
         c --> cell index

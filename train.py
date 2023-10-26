@@ -106,11 +106,11 @@ class Trainer(object):
         if self.scaler is not None:
             with torch.cuda.amp.autocast():
                 logits = self.model(trn_X)
-                loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
+                loss = self.model.criterion(logits, trn_y) + self.mu * self.model.mmc()
             self.scaler.scale(loss).backward()
         else:
             logits = self.model(trn_X)
-            loss = self.model.criterion(logits, trn_y) + self.mu * self.model.L1L2_reg()
+            loss = self.model.criterion(logits, trn_y) + self.mu * self.model.mmc()
             loss.backward()
 
         # gradient clipping
@@ -190,7 +190,7 @@ class Trainer(object):
                     'epoch_tr_loss': self.epoch_tr_loss,
                     'epoch_L01_loss': self.epoch_L01_loss,
                     'friction': self.model.friction().item(),
-                    'mmc': self.model.L1L2_reg().item(),
+                    'mmc': self.model.mmc().item(),
                     'epoch_tr_acc': self.epoch_tr_acc
                     }, step=epoch
                 )
@@ -210,7 +210,7 @@ class Trainer(object):
             df['train_loss'].append(self.epoch_tr_loss.item())
             df['L01_loss'].append(self.epoch_L01_loss)
             df['friction'].append(self.model.friction().item())
-            df['mmc'].append(self.model.L1L2_reg().item())
+            df['mmc'].append(self.model.mmc().item())
             df['alphas'].append(None)
             ############################################################################################################
 
@@ -379,8 +379,7 @@ class VanillaTrainer(object):
         self.epoch_corr += out.argmax(dim=-1).eq(label).sum(-1)
 
     def fit(self, train_dl, valid_dl, test_dl, args):
-        df = {'epoch': [], 'train_loss': [], 'valid_loss': [], 'train_acc': [], 'valid_acc': [], 'friction': [],
-              'mmc': []}
+        df = {'epoch': [], 'train_loss': [], 'valid_loss': [], 'train_acc': [], 'valid_acc': [], 'mmc': []}
         mixup_fn = Mixup(
             cutmix_alpha=self.cutmix_beta,
             prob=self.cutmix_prob,
@@ -404,15 +403,14 @@ class VanillaTrainer(object):
             df['epoch'].append(epoch)
             df['train_acc'].append(self.epoch_tr_acc.item())
             df['train_loss'].append(self.epoch_tr_loss.item())
-            df['friction'].append(self.model.friction().item())
-            df['mmc'].append(self.model.L1L2_reg().item())
+            df['mmc'].append(self.model.mmc().item())
 
             if self.wandb:
                 wandb.log({
                     'epoch_tr_loss': self.epoch_tr_loss,
                     'epoch_tr_acc': self.epoch_tr_acc,
                     'epoch_friction': self.model.friction().item(),
-                    'epoch_mmc': self.model.L1L2_reg().item(),
+                    'epoch_mmc': self.model.mmc().item(),
                 }, step=epoch
                 )
 
