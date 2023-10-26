@@ -389,7 +389,7 @@ class VanillaTrainer(object):
         )
         for epoch in trange(1, self.epochs + 1):
             num_tr_imgs = 0.
-            self.epoch_tr_loss, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0., 0.
+            self.epoch_tr_loss, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0.
             for batch_idx, batch in enumerate(train_dl):
                 print(f"{batch_idx}/{len(train_dl)} --> {batch_idx / len(train_dl):.2f}")
                 if batch_idx == 3:
