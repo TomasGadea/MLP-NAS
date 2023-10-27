@@ -1,7 +1,9 @@
 echo $$
 source environ/bin/activate
 CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 main.py \
-	--dataset imagenet \
+	--dataset c10 \
+ 	--img-size 224 \
+  	--padding 28 \
 	--valid-ratio 0.5 \
 	--batch-size 256 \
 	--num-workers 4 \
