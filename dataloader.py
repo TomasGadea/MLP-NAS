@@ -75,7 +75,8 @@ def get_dataloaders(args):
 def get_transform(args):
     if args.dataset in ["c10", "c100", 'svhn', 'stl10']:
         args.padding = 4
-        args.size = 32
+        if not hasattr(args, 'size'):
+            args.size = 32
         if args.dataset == "c10":
             args.mean, args.std = [0.4914, 0.4822, 0.4465], [0.2470, 0.2435, 0.2616]
         elif args.dataset == "c100":
@@ -92,10 +93,9 @@ def get_transform(args):
         args.mean, args.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 
+    train_transform_list = [transforms.Resize(size=(args.size, args.size))]
     if args.dataset not in ["svhn", "imagenet"]:
-        train_transform_list = [transforms.RandomCrop(size=(args.size, args.size), padding=args.padding)]
-    elif args.dataset == 'imagenet':
-        train_transform_list = [transforms.Resize(size=(args.size, args.size))]
+        train_transform_list.append(transforms.RandomCrop(size=(args.size, args.size), padding=args.padding))
 
     if args.autoaugment:
         if args.dataset == 'c10' or args.dataset == 'c100':
