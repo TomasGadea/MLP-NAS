@@ -74,7 +74,8 @@ def get_dataloaders(args):
 
 def get_transform(args):
     if args.dataset in ["c10", "c100", 'svhn', 'stl10']:
-        args.padding = 4
+        if not hasattr(args, 'padding'):
+            args.padding = 4
         if not hasattr(args, 'size'):
             args.size = 32
         if args.dataset == "c10":
