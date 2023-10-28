@@ -80,7 +80,7 @@ if __name__ == '__main__':
     parser.add_argument('--mu', type=float, default=0.)
     parser.add_argument('--l', type=float, default=0.)
 
-    parser.add_argument('--w-optimizer', default='Adam', choices=['Adam', 'SGD'])
+    parser.add_argument('--w-optimizer', default='Adam', choices=['Adam', 'SGD','Adamw'])
     parser.add_argument('--w-lr', type=float, default=1e-3)
     parser.add_argument('--w-momentum', type=float, default=0.9)
     parser.add_argument('--w-weight-decay', type=float, default=5e-5)

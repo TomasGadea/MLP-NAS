@@ -46,6 +46,8 @@ class Trainer(object):
             self.w_optimizer = optim.SGD(self.model.parameters(), lr=args.w_lr, momentum=args.w_momentum, weight_decay=args.w_weight_decay, nesterov=args.nesterov)
         elif args.w_optimizer == 'Adam':
             self.w_optimizer = optim.Adam(self.model.parameters(), lr=args.w_lr, betas=(args.w_beta1, args.w_beta2), weight_decay=args.w_weight_decay)
+        elif args.w_optimizer == 'Adamw':
+            self.w_optimizer = optim.AdamW(self.model.parameters(), lr=args.w_lr, betas=(args.w_beta1, args.w_beta2),weight_decay=args.w_weight_decay)
         else:
             raise ValueError(f"No such W optimizer: {args.w_optimizer}")
 
@@ -285,6 +287,9 @@ class VanillaTrainer(object):
                                        weight_decay=args.weight_decay, nesterov=args.nesterov)
         elif args.optimizer == 'Adam':
             self.optimizer = optim.Adam(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2),
+                                        weight_decay=args.weight_decay)
+        elif args.optimizer == 'Adamw':
+            self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2),
                                         weight_decay=args.weight_decay)
         else:
             raise ValueError(f"No such optimizer: {self.optimizer}")
