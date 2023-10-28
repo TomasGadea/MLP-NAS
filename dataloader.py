@@ -131,7 +131,9 @@ def get_transform(args):
             )
 
     else:
-        test_transform = transforms.Compose([
+        test_transform_list = [transforms.Resize(size=(args.size, args.size))]
+        test_transform = transforms.Compose(
+                test_transform_list+[
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=args.mean,
