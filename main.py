@@ -7,7 +7,7 @@ import os
 import json
 
 from dataloader import get_dataloaders
-from utils import get_model, save_config
+from utils import get_model, save_config,set_seed
 from train import Trainer
 from fixed_main import main as f_main
 from fvcore.nn import FlopCountAnalysis, parameter_count, flop_count_table
@@ -144,7 +144,8 @@ if __name__ == '__main__':
     args.nesterov = not args.off_nesterov
     args.pid = os.getpid()
     args.subexperiment=f"experiment_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}"
-    torch.random.manual_seed(args.seed)
+    # torch.random.manual_seed(args.seed)
+    set_seed(args.seed)
 
     main(args)
 
