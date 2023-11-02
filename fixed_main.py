@@ -7,7 +7,9 @@ import os
 import json
 
 from dataloader import get_dataloaders
-from utils import get_model, save_config
+from utils import get_model, save_config, ddp_setup
+from torch.distributed import destroy_process_group
+import torch.multiprocessing as mp
 from train import Trainer, VanillaTrainer
 from fvcore.nn import FlopCountAnalysis, parameter_count, flop_count_table
 
@@ -40,6 +42,39 @@ def main(args):
     v_trainer = VanillaTrainer(fixed_model, args)
     v_trainer.fit(train_dl, valid_dl, test_dl, args)
 
+
+def distributed_main(rank, world_size, args):
+    print(f"PID: {os.getpid()}")
+    args.device = rank
+    args.world_size = world_size
+    ddp_setup(rank, world_size)
+
+    if args.wandb:
+        name = f"{args.model}_{args.experiment}"
+        if args.model == 'fixed-mixer':
+            name += f"_{args.subexperiment}"
+        config = json.load(open('config.json'))
+        os.environ["WANDB_API_KEY"] = config['WANDB_API_KEY']
+        wandb.login(key=os.environ['WANDB_API_KEY'])
+        wandb.init(project=args.project, config=args, name=name)
+
+    train_dl, valid_dl, test_dl = get_dataloaders(args)
+    fixed_model = get_model(args)
+
+    # flops
+    input = torch.rand((1, 3, args.size, args.size)).to(args.device)
+    flops = FlopCountAnalysis(fixed_model, input)
+    args.flops = flops.total()
+    args.n_params = parameter_count(fixed_model)['']
+    os.makedirs(os.path.join(args.output, args.experiment), exist_ok=True)
+    with open(os.path.join(args.output, args.experiment, "flops_table.txt"), "w") as text_file:
+        text_file.write(f"{flop_count_table(flops, max_depth=0)}")
+
+    save_config(args)
+    v_trainer = VanillaTrainer(fixed_model, args)
+    v_trainer.fit(train_dl, valid_dl, test_dl, args)
+
+    destroy_process_group()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -82,6 +117,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--wandb', action='store_true')
     parser.add_argument('--use-amp', action='store_true')
+    parser.add_argument('--distributed', action='store_true')
 
 
     args = parser.parse_args()
@@ -92,6 +128,11 @@ if __name__ == '__main__':
 
     torch.random.manual_seed(args.seed)
 
-    main(args)
+
+    if args.distributed:
+        world_size = torch.cuda.device_count()
+        mp.spawn(distributed_main, args=(world_size, args), nprocs=world_size)
+    else:
+        main(args)
 
 

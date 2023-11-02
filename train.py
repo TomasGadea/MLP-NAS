@@ -10,6 +10,8 @@ import numpy as np
 from tqdm import tqdm, trange
 from timm.data.mixup import Mixup
 from architect import Architect
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed import all_reduce, all_gather, ReduceOp
 
 from utils import rand_bbox
 
@@ -130,10 +132,10 @@ class Trainer(object):
         # update metrics
         acc = logits.argmax(dim=-1).eq(trn_y.argmax(dim=-1)).sum(-1)/len(trn_X)
         """
-        wandb.log({
-            'loss': loss,
-            'acc': acc
-        }, step=self.num_steps)
+        #wandb.log({
+        #    'loss': loss,
+        #    'acc': acc
+        #}, step=self.num_steps)
         """
 
         self.epoch_tr_loss += loss * len(trn_X)
@@ -269,8 +271,11 @@ class Trainer(object):
 
 class VanillaTrainer(object):
     def __init__(self, model, args):
-        self.model = model
         self.device = args.device
+        if args.distributed:
+            self.model = DDP(model, device_ids=[self.device])
+        else:
+            self.model = model
         self.clip_grad = args.clip_grad
         self.cutmix_beta = args.cutmix_beta
         self.cutmix_prob = args.cutmix_prob
@@ -321,7 +326,7 @@ class VanillaTrainer(object):
         self.num_steps = 0
         self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
 
-    def _train_one_step(self, batch, mixup_fn):
+    def _train_one_step(self, batch, mixup_fn, args):
         self.model.train()
         img, label = batch
         self.num_steps += 1
@@ -350,10 +355,21 @@ class VanillaTrainer(object):
         else:
             self.optimizer.step()
 
-        acc = out.argmax(dim=-1).eq(label.argmax(dim=-1)).sum(-1) / img.size(0)
 
-        self.epoch_tr_loss += loss * img.size(0)
-        self.epoch_tr_corr += out.argmax(dim=-1).eq(label.argmax(dim=-1)).sum(-1)
+        if args.distributed:
+            all_reduce(loss, ReduceOp.SUM)
+            loss = loss / args.world_size
+            out_list = [torch.zeros_like(out) for _ in range(args.world_size)]
+            label_list = [torch.zeros_like(label) for _ in range(args.world_size)]
+            all_gather(out_list, out)
+            all_gather(label_list, label)
+            out = torch.cat(out_list, dim=0)
+            label = torch.cat(label_list, dim=0)
+
+
+        if not args.distributed or args.device == 0:
+            self.epoch_tr_loss += loss * img.size(0)
+            self.epoch_tr_corr += out.argmax(dim=-1).eq(label.argmax(dim=-1)).sum(-1)
 
     # @torch.no_grad
     def _test_one_step(self, batch):
@@ -385,49 +401,58 @@ class VanillaTrainer(object):
         for epoch in trange(1, self.epochs + 1):
             num_tr_imgs = 0.
             self.epoch_tr_loss, self.epoch_tr_corr, self.epoch_tr_acc = 0., 0., 0.
+            if args.distributed:
+                train_dl.sampler.set_epoch(epoch)
             for batch_idx, batch in enumerate(train_dl):
-                self._train_one_step(batch, mixup_fn)
+                self._train_one_step(batch, mixup_fn, args)
                 num_tr_imgs += batch[0].size(0)
-            self.epoch_tr_loss /= num_tr_imgs
-            self.epoch_tr_acc = self.epoch_tr_corr / num_tr_imgs
 
             self.scheduler.step()
 
-            df['epoch'].append(epoch)
-            df['train_acc'].append(self.epoch_tr_acc.item())
-            df['train_loss'].append(self.epoch_tr_loss.item())
-            df['mmc'].append(self.model.mmc().item())
+            if not args.distributed or args.device == 0:
+                self.epoch_tr_loss /= num_tr_imgs
+                self.epoch_tr_acc = self.epoch_tr_corr / num_tr_imgs
 
-            if self.wandb:
-                wandb.log({
-                    'epoch_tr_loss': self.epoch_tr_loss,
-                    'epoch_tr_acc': self.epoch_tr_acc,
-                    'epoch_mmc': self.model.mmc().item(),
-                }, step=epoch
-                )
+                df['epoch'].append(epoch)
+                df['train_acc'].append(self.epoch_tr_acc.item())
+                df['train_loss'].append(self.epoch_tr_loss.item())
+                df['mmc'].append(self.model.mmc().item())
 
+                if self.wandb:
+                    wandb.log({
+                        'epoch_tr_loss': self.epoch_tr_loss,
+                        'epoch_tr_acc': self.epoch_tr_acc,
+                        'epoch_mmc': self.model.mmc().item(),
+                    }, step=epoch
+                    )
             num_imgs = 0.
             self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
             for batch_idx, batch in enumerate(test_dl):
                 self._test_one_step(batch)
                 num_imgs += batch[0].size(0)
-            self.epoch_loss /= num_imgs
-            self.epoch_acc = self.epoch_corr / num_imgs
 
-            df['valid_loss'].append(self.epoch_loss.item())
-            df['valid_acc'].append(self.epoch_acc.item())
+            if not args.distributed or args.device == 0:
+                self.epoch_loss /= num_imgs
+                self.epoch_acc = self.epoch_corr / num_imgs
 
-            if self.wandb:
-                wandb.log({
-                    'val_loss': self.epoch_loss,
-                    'val_acc': self.epoch_acc
-                }, step=epoch
-                )
+                df['valid_loss'].append(self.epoch_loss.item())
+                df['valid_acc'].append(self.epoch_acc.item())
 
-            # save model weights
-            path = os.path.join(args.output, args.experiment)
-            os.makedirs(path, exist_ok=True)
-            torch.save(self.model.state_dict(), os.path.join(path, 'W.pt'))
+                if self.wandb:
+                    wandb.log({
+                        'val_loss': self.epoch_loss,
+                        'val_acc': self.epoch_acc
+                    }, step=epoch
+                    )
 
-            pd_df = pd.DataFrame.from_dict(df, orient='columns')
-            pd_df.to_csv(os.path.join(path, f'log.csv'), index=False, float_format='%g')
+            if not args.distributed or args.device == 0:
+                # save model weights
+                path = os.path.join(args.output, args.experiment)
+                os.makedirs(path, exist_ok=True)
+                if args.distributed:
+                    torch.save(self.model.module.state_dict(), os.path.join(path, 'W.pt'))
+                else:
+                    torch.save(self.model.state_dict(), os.path.join(path, 'W.pt'))
+
+                pd_df = pd.DataFrame.from_dict(df, orient='columns')
+                pd_df.to_csv(os.path.join(path, f'log.csv'), index=False, float_format='%g')
