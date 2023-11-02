@@ -3,6 +3,7 @@ import os
 import json
 import torch
 import random
+from torch.distributed import init_process_group
 
 def set_seed(seed=0):
     np.random.seed(seed)
@@ -11,6 +12,19 @@ def set_seed(seed=0):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def ddp_setup(rank: int, world_size: int):
+    """
+    Args:
+        rank: Unique identifier of each process
+       world_size: Total number of processes
+    """
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
+    init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
 
 def get_model(args):
     model = None
