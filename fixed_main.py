@@ -124,7 +124,6 @@ if __name__ == '__main__':
     args.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     args.nesterov = not args.off_nesterov
     args.pid = os.getpid()
-    print("ARGS: ", args)
 
     torch.random.manual_seed(args.seed)
 
