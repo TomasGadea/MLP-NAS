@@ -62,9 +62,9 @@ def get_model(args):
             off_act=supernet_params["off_act"],
             is_cls_token=supernet_params["is_cls_token"]
         )
-        search_model.load_state_dict(
-            torch.load(os.path.join(args.path_to_supernet, 'W.pt'))
-        )
+        sd = torch.load(os.path.join(args.path_to_supernet, 'W.pt'))
+        sd_filtered = {k: v for k,v in sd.items() if 'clf' not in k}
+        search_model.load_state_dict(sd_filtered, strict=False)
         alphas = search_model.get_detached_alphas(aslist=False, activated=False)
         model = FixedMixer(search_model.net, alphas)
 
