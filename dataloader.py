@@ -8,6 +8,7 @@ from AutoAugment.autoaugment import CIFAR10Policy, SVHNPolicy, ImageNetPolicy
 import numpy as np
 import json
 import os
+from torch.utils.data.distributed import DistributedSampler
 
 
 def get_dataloaders(args):
@@ -62,12 +63,23 @@ def get_dataloaders(args):
             num_workers=args.num_workers, pin_memory=True, generator=g)
 
     else:
-        train_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
-                                               num_workers=args.num_workers, pin_memory=True, generator=g)
+        if args.distributed:
+            train_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.batch_size, shuffle=False,
+                                                   sampler=DistributedSampler(train_ds), num_workers=args.num_workers,
+                                                   pin_memory=True, generator=g)
+        else:
+            train_dl = torch.utils.data.DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
+                                                   num_workers=args.num_workers, pin_memory=True, generator=g)
         valid_dl = None
 
-    test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, shuffle=False,
-                                          num_workers=args.num_workers, pin_memory=True, generator=g)
+    if args.distributed:
+        test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, shuffle=False,
+                                              sampler=DistributedSampler(test_ds), num_workers=args.num_workers,
+                                              pin_memory=True, generator=g)
+    else:
+        test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, shuffle=False,
+                                              num_workers=args.num_workers, pin_memory=True, generator=g)
+
 
     return train_dl, valid_dl, test_dl
 
