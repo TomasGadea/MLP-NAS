@@ -86,9 +86,9 @@ def get_dataloaders(args):
 
 def get_transform(args):
     if args.dataset in ["c10", "c100", 'svhn', 'stl10']:
-        if not hasattr(args, 'padding'):
+        if not hasattr(args, 'padding') or args.padding is None:
             args.padding = 4
-        if not hasattr(args, 'size'):
+        if not hasattr(args, 'size') or args.size is None:
             args.size = 32
         if args.dataset == "c10":
             args.mean, args.std = [0.4914, 0.4822, 0.4465], [0.2470, 0.2435, 0.2616]
