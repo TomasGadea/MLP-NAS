@@ -404,6 +404,7 @@ class VanillaTrainer(object):
             if args.distributed:
                 train_dl.sampler.set_epoch(epoch)
             for batch_idx, batch in enumerate(train_dl):
+                # print(f"TRAIN rank: {args.device}, batch_idx: {batch_idx}")
                 self._train_one_step(batch, mixup_fn, args)
                 num_tr_imgs += batch[0].size(0)
 
@@ -416,18 +417,19 @@ class VanillaTrainer(object):
                 df['epoch'].append(epoch)
                 df['train_acc'].append(self.epoch_tr_acc.item())
                 df['train_loss'].append(self.epoch_tr_loss.item())
-                df['mmc'].append(self.model.mmc().item())
+                df['mmc'].append(self.model.module.mmc().item())
 
                 if self.wandb:
                     wandb.log({
                         'epoch_tr_loss': self.epoch_tr_loss,
                         'epoch_tr_acc': self.epoch_tr_acc,
-                        'epoch_mmc': self.model.mmc().item(),
+                        'epoch_mmc': self.model.module.mmc().item(),
                     }, step=epoch
                     )
             num_imgs = 0.
             self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
             for batch_idx, batch in enumerate(test_dl):
+                # print(f"TEST rank: {args.device}, batch_idx: {batch_idx}")
                 self._test_one_step(batch)
                 num_imgs += batch[0].size(0)
 
