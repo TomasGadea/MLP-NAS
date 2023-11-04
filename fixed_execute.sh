@@ -22,6 +22,7 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2,5 python3 fixed_main.py \
 	--cutmix-beta 1. \
 	--cutmix-prob 0.5 \
 	--distributed \
+	--recovery-interval 0 \
 	--use-timm-transform \
 	--hflip 0.5 \
 	--vflip 0. \

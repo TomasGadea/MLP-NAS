@@ -12,6 +12,7 @@ from timm.data.mixup import Mixup
 from architect import Architect
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import all_reduce, all_gather, ReduceOp
+from timm.utils import CheckpointSaver
 
 from utils import rand_bbox
 
@@ -326,6 +327,17 @@ class VanillaTrainer(object):
         self.num_steps = 0
         self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
 
+        self.saver = None
+        if not args.distributed or args.device == 0:
+            self.saver = CheckpointSaver(
+                model=model,
+                optimizer=self.optimizer,
+                args=args,
+                amp_scaler=self.scaler,
+                checkpoint_dir=args.output,
+                recovery_dir=args.output,
+            )
+
     def _train_one_step(self, batch, mixup_fn, args):
         self.model.train()
         img, label = batch
@@ -407,6 +419,9 @@ class VanillaTrainer(object):
                 # print(f"TRAIN rank: {args.device}, batch_idx: {batch_idx}")
                 self._train_one_step(batch, mixup_fn, args)
                 num_tr_imgs += batch[0].size(0)
+                if self.saver is not None and args.recovery_interval and (
+                        (batch_idx + 1) % args.recovery_interval == 0):
+                    self.saver.save_recovery(epoch, batch_idx=batch_idx)
 
             self.scheduler.step()
 
@@ -458,3 +473,4 @@ class VanillaTrainer(object):
 
                 pd_df = pd.DataFrame.from_dict(df, orient='columns')
                 pd_df.to_csv(os.path.join(path, f'log.csv'), index=False, float_format='%g')
+

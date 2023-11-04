@@ -92,6 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('--padding', type=int)
     parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--valid-ratio', type=float, default=0.)
+    parser.add_argument('--recovery-interval', type=int, default=0)
     # data aug
     parser.add_argument('--use-timm-transform', action='store_true', help='Use timm.data transforms (for Imagenet only)')
     parser.add_argument('--hflip', type=float, default=0.5, help='Horizontal flip training aug probability')
