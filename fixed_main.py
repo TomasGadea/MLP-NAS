@@ -98,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--vflip', type=float, default=0., help='Vertical flip training aug probability')
     parser.add_argument('--color-jitter', type=float, default=0.4, metavar='PCT',
                        help='Color jitter factor (default: 0.4)')
-    parser.add_argument('--train-interpolation', type=str, default='random', choices=["random", "bilinear", "bicubic"],
+    parser.add_argument('--train-interpolation', type=str, default='bilinear', choices=["bilinear", "bicubic"],
                        help='Training interpolation (random, bilinear, bicubic default: "random")')
     parser.add_argument('--reprob', type=float, default=0., help='Random erase prob (default: 0.)')
     parser.add_argument('--remode', type=str, default='pixel', choices=['pixel', 'rand', 'const'],
@@ -107,8 +107,8 @@ if __name__ == '__main__':
                        help='Random erase count (default: 1)')
     #parser.add_argument('--resplit', action='store_true', default=False,
     #                   help='Do not random erase first (clean) augmentation split')
-
-    parser.add_argument('--autoaugment', action='store_true')
+    parser.add_argument('--autoaugment', type=str, default=None,
+                                    choices=["rand", "augmix", "original", "originalr", "v0", "v0r", "3a"])
 
 
     # Retrain Discrete Arch

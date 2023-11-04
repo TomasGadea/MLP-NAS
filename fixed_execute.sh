@@ -1,13 +1,12 @@
 echo $$
 source environ/bin/activate
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=1,4 python3 fixed_main.py \
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2,5 python3 fixed_main.py \
 	--path-to-supernet /home/tgadea/MLP-NAS/out/experiment_2023-10-26_18:44:01 \
 	--model fixed-mixer \
 	--dataset imagenet \
 	--img-size 224 \
 	--batch-size 128 \
 	--eval-batch-size 128 \
-	--autoaugment \
 	--valid-ratio 0. \
 	--epochs 1 \
 	--lr 1e-3 \
@@ -22,4 +21,13 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=1,4 python3 fixed_main.py \
 	--clip-grad 0 \
 	--cutmix-beta 1. \
 	--cutmix-prob 0.5 \
-	--distributed
+	--distributed \
+	--use-timm-transform \
+	--hflip 0.5 \
+	--vflip 0. \
+	--color-jitter 0.4 \
+	--train-interpolation bilinear \
+	--reprob 0. \
+	--remode pixel \
+	--recount 1 \
+	--autoaugment v0 \
