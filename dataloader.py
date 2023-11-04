@@ -9,6 +9,7 @@ import numpy as np
 import json
 import os
 from torch.utils.data.distributed import DistributedSampler
+from timm.data.transforms_factory import transforms_imagenet_train, transforms_imagenet_eval
 
 
 def get_dataloaders(args):
@@ -104,6 +105,37 @@ def get_transform(args):
         args.padding = 28
         args.size = 224
         args.mean, args.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+
+        if args.use_timm_transform:
+            train_transform = transforms_imagenet_train(
+                img_size=224,
+                scale=None,
+                ratio=None,
+                hflip=args.hflip,
+                vflip=args.vflip,
+                color_jitter=args.color_jitter,
+                auto_augment=args.autoaugment,
+                interpolation=args.train_interpolation,
+                use_prefetcher=False,
+                mean=args.mean,
+                std=args.std,
+                re_prob=args.reprob,
+                re_mode=args.remode,
+                re_count=args.recount,
+                re_num_splits=0,
+                separate=False,
+                force_color_jitter=False
+            )
+            test_transform = transforms_imagenet_eval(
+                img_size=224,
+                crop_pct=None,
+                crop_mode=None,
+                interpolation=args.train_interpolation,
+                use_prefetcher=False,
+                mean=args.mean,
+                std=args.std
+            )
+            return train_transform, test_transform
 
 
     train_transform_list = [transforms.Resize(size=(args.size, args.size))]
