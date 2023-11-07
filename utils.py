@@ -65,7 +65,7 @@ def get_model(args):
         sd = torch.load(os.path.join(args.path_to_supernet, 'W.pt'))
         sd_filtered = {k: v for k,v in sd.items() if 'clf' not in k}
         search_model.load_state_dict(sd_filtered, strict=False)
-        alphas = search_model.get_detached_alphas(aslist=False, activated=True, th=args.th_arch, binarize=args.binarize_arch)
+        alphas = search_model.get_detached_alphas(aslist=False, activated=True, th=args.th_arch, binarize=args.binarize_arch, top_k=args.top_k)
         model = FixedMixer(
             in_channels=3,
             img_size=args.size,
