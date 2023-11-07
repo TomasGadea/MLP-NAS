@@ -1,6 +1,7 @@
 echo $$
 source environ/bin/activate
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2,5 python3 fixed_main.py \
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=3,2 python3 fixed_main.py \
 	--path-to-supernet /home/tgadea/MLP-NAS/out/experiment_2023-10-26_18:44:01 \
 	--model fixed-mixer \
 	--dataset imagenet \
@@ -32,3 +33,5 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2,5 python3 fixed_main.py \
 	--remode pixel \
 	--recount 1 \
 	--autoaugment v0 \
+	--th-arch 0.5 \
+	--binarize-arch \

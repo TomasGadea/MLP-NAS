@@ -22,7 +22,7 @@ class mixedInverseAutoencoder(nn.Module):
     def forward(self, x, alphas):
         weights = F.sigmoid(alphas) if not self.are_activated else alphas
         f = sum(w * op(x) for w, op in zip(weights, self.ops))
-        if isinstance(f, int): return torch.zeros_like(x)
+        if isinstance(f, int): return 0. * x
         return f
 
 
