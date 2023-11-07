@@ -128,7 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('--warmup-epoch', type=int, default=5)
     parser.add_argument('--clip-grad', type=float, default=0, help="0 means disabling clip-grad")
     parser.add_argument('--cutmix-beta', type=float, default=1.0)
-    parser.add_argument('--cutmix-prob', type=float, default=0.)
+    parser.add_argument('--cutmix-prob', type=float, default=0.5)
 
     parser.add_argument('--discrete', action='store_true')
     parser.add_argument('--discrete-th', type=float, default=0.5)
