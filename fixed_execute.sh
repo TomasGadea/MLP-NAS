@@ -34,5 +34,6 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=3,2 python3 fixed_main.py \
 	--recount 1 \
 	--autoaugment v0 \
 	--th-arch 0.5 \
+	--top-k 2 \
 	--binarize-arch \
 	--verbose

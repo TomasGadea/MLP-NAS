@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--th-arch', type=float, default=0.5, help='threshold to filter out operations, ops with alpha <= th will not be chosen')
-    parser.add_argument('--top-k', type=float, default=None, help='the top k operations to select based on their weights. Compatible with --th-arch and --binarize')
+    parser.add_argument('--top-k', type=int, default=None, help='the top k operations to select based on their weights. Compatible with --th-arch and --binarize')
     parser.add_argument('--binarize-arch', action='store_true', help='keep original alphas when thresholding or binarize to 0 or 1 with --th-arch value')
 
     # Retrain Discrete Arch
