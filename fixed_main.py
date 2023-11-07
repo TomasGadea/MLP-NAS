@@ -112,6 +112,9 @@ if __name__ == '__main__':
                                     choices=["rand", "augmix", "original", "originalr", "v0", "v0r", "3a"])
 
 
+    parser.add_argument('--th-arch', type=float, default=0.5, help='threshold to filter out operations, ops with alpha < th will not be chosen')
+    parser.add_argument('--binarize-arch', action='stpre_true', help='keep original alphas when thresholding or binarize to 0 or 1 with --th-arch value')
+
     # Retrain Discrete Arch
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--lr', type=float, default=1e-3)

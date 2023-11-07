@@ -65,8 +65,20 @@ def get_model(args):
         sd = torch.load(os.path.join(args.path_to_supernet, 'W.pt'))
         sd_filtered = {k: v for k,v in sd.items() if 'clf' not in k}
         search_model.load_state_dict(sd_filtered, strict=False)
-        alphas = search_model.get_detached_alphas(aslist=False, activated=False)
-        model = FixedMixer(search_model.net, alphas)
+        alphas = search_model.get_detached_alphas(aslist=False, activated=True, th=args.th_arch, binarize=args.binarize_arch)
+        model = FixedMixer(
+            in_channels=3,
+            img_size=args.size,
+            hidden_size=supernet_params["hidden_size"],
+            patch_size=supernet_params["patch_size"],
+            hidden_s_candidates=supernet_params["hidden_s_candidates"],
+            hidden_c_candidates=supernet_params["hidden_c_candidates"],
+            n_cells=supernet_params["n_cells"],
+            num_classes=args.num_classes,
+            drop_p=supernet_params["drop_p"],
+            off_act=supernet_params["off_act"],
+            is_cls_token=supernet_params["is_cls_token"],
+            fixed_alphas=alphas)
 
     elif args.model == 'mlp-mixer':
         from models import MLPMixer

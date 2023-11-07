@@ -125,7 +125,7 @@ class SearchController(nn.Module):
     def weights(self):
         return self.net.parameters()
 
-    def get_detached_alphas(self, aslist=False, th=None, activated=True):
+    def get_detached_alphas(self, aslist=False, th=None, activated=True, binarize=True):
         detached = []
         for a in self.alphas:
             if isinstance(a, torch.Tensor):
@@ -146,7 +146,10 @@ class SearchController(nn.Module):
                         else:
                             p = p.detach()
                         if th is not None:
-                            p = torch.where(p >= th, 1, 0)
+                            if binarize:
+                                p = torch.where(p >= th, 1, 0)
+                            else:
+                                p = torch.where(p >= th, p, 0)
                         if aslist:
                             d.append(p.tolist())
                         else:
@@ -157,7 +160,7 @@ class SearchController(nn.Module):
 
 class SearchMixer(nn.Module):
     def __init__(self, in_channels, img_size, patch_size, hidden_size, hidden_s_candidates, hidden_c_candidates,
-                 n_cells, num_classes, drop_p, off_act, is_cls_token):
+                 n_cells, num_classes, drop_p, off_act, is_cls_token, fixed_alphas=None):
         super(SearchMixer, self).__init__()
         num_patches = img_size // patch_size * img_size // patch_size
         # (b, c, h, w) -> (b, d, h//p, w//p) -> (b, h//p*w//p, d)
@@ -177,7 +180,8 @@ class SearchMixer(nn.Module):
         self.hidden_c_candidates = hidden_c_candidates
         self.cells = nn.ModuleList()
         for i in range(n_cells):
-            cell = C.SearchCellMixer(num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act)
+            cell_fixed_alphas = fixed_alphas[i] if fixed_alphas is not None else None
+            cell = C.SearchCellMixer(num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act, cell_fixed_alphas)
             self.cells.append(cell)
 
         self.ln = nn.LayerNorm(hidden_size)
@@ -197,10 +201,13 @@ class SearchMixer(nn.Module):
 
 
 class FixedMixer(nn.Module):
-    def __init__(self, model, alphas):
+    def __init__(self, in_channels, img_size, patch_size, hidden_size, hidden_s_candidates, hidden_c_candidates,
+                 n_cells, num_classes, drop_p, off_act, is_cls_token, fixed_alphas):
         super(FixedMixer, self).__init__()
-        self.model = model
-        self.alphas = alphas
+        self.model = SearchMixer(in_channels, img_size, patch_size, hidden_size, hidden_s_candidates,
+                                 hidden_c_candidates, n_cells, num_classes, drop_p, off_act, is_cls_token,
+                                 fixed_alphas)
+        self.alphas = fixed_alphas
 
     def forward(self, x):
         return self.model(x, self.alphas)
