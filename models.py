@@ -125,7 +125,7 @@ class SearchController(nn.Module):
     def weights(self):
         return self.net.parameters()
 
-    def get_detached_alphas(self, aslist=False, th=None, activated=True, binarize=True):
+    def get_detached_alphas(self, aslist=False, th=None, activated=True, binarize=True, top_k=None):
         detached = []
         for a in self.alphas:
             if isinstance(a, torch.Tensor):
@@ -146,10 +146,17 @@ class SearchController(nn.Module):
                         else:
                             p = p.detach()
                         if th is not None:
-                            if binarize:
-                                p = torch.where(p >= th, 1, 0)
+                            p = torch.where(p > th, p, 0)
+                        if top_k is not None:
+                            assert(top_k <= len(p))
+                            least_k = len(p) - top_k
+                            _, idxs = p.topk(least_k, largest=False)
+                            p[idxs] = 0.
+                        if binarize:
+                            if th is not None:
+                                p = torch.where(p > th, 1, 0)
                             else:
-                                p = torch.where(p >= th, p, 0)
+                                p = torch.where(p > 0, 1, 0)
                         if aslist:
                             d.append(p.tolist())
                         else:
