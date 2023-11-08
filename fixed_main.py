@@ -112,6 +112,10 @@ if __name__ == '__main__':
                                     choices=["rand", "augmix", "original", "originalr", "v0", "v0r", "3a"])
 
 
+    parser.add_argument('--th-arch', type=float, default=0.5, help='threshold to filter out operations, ops with alpha <= th will not be chosen')
+    parser.add_argument('--top-k', type=int, default=None, help='the top k operations to select based on their weights. Compatible with --th-arch and --binarize')
+    parser.add_argument('--binarize-arch', action='store_true', help='keep original alphas when thresholding or binarize to 0 or 1 with --th-arch value')
+
     # Retrain Discrete Arch
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -128,7 +132,7 @@ if __name__ == '__main__':
     parser.add_argument('--warmup-epoch', type=int, default=5)
     parser.add_argument('--clip-grad', type=float, default=0, help="0 means disabling clip-grad")
     parser.add_argument('--cutmix-beta', type=float, default=1.0)
-    parser.add_argument('--cutmix-prob', type=float, default=0.5)
+    parser.add_argument('--cutmix-prob', type=float, default=0.)
 
     parser.add_argument('--discrete', action='store_true')
     parser.add_argument('--discrete-th', type=float, default=0.5)
@@ -136,6 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('--wandb', action='store_true')
     parser.add_argument('--use-amp', action='store_true')
     parser.add_argument('--distributed', action='store_true')
+    parser.add_argument('--verbose', action='store_true')
 
 
     args = parser.parse_args()

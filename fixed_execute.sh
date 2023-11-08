@@ -1,5 +1,5 @@
 echo $$
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=1,2,3 python3 fixed_main.py \
+CUDA_VISIBLE_DEVICES=1,2,3 python3 fixed_main.py \
 	--path-to-supernet /home/yixin/MLP-NAS/out/MLP-s16 \
 	--model fixed-mixer \
 	--dataset imagenet \
@@ -31,3 +31,7 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=1,2,3 python3 fixed_main.py \
 	--remode pixel \
 	--recount 1 \
 	--autoaugment v0r \
+	--th-arch 0.5 \
+	--top-k 2 \
+	--binarize-arch \
+	--verbose

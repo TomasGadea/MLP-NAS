@@ -416,7 +416,8 @@ class VanillaTrainer(object):
             if args.distributed:
                 train_dl.sampler.set_epoch(epoch)
             for batch_idx, batch in enumerate(train_dl):
-                # print(f"TRAIN rank: {args.device}, batch_idx: {batch_idx}")
+                if args.verbose:
+                    print(f"TRAIN rank: {args.device}, batch_idx: {batch_idx} ({batch_idx/(len(train_dl) * args.world_size):.02f}%)")
                 self._train_one_step(batch, mixup_fn, args)
                 num_tr_imgs += batch[0].size(0)
                 if self.saver is not None and args.recovery_interval and (
@@ -444,7 +445,8 @@ class VanillaTrainer(object):
             num_imgs = 0.
             self.epoch_loss, self.epoch_corr, self.epoch_acc = 0., 0., 0.
             for batch_idx, batch in enumerate(test_dl):
-                # print(f"TEST rank: {args.device}, batch_idx: {batch_idx}")
+                if args.verbose:
+                    print(f"TEST rank: {args.device}, batch_idx: {batch_idx} ({batch_idx/(len(train_dl) * args.world_size):.02f}%)")
                 self._test_one_step(batch)
                 num_imgs += batch[0].size(0)
 

@@ -179,10 +179,12 @@ class SearchCellgMLP(nn.Module):
 
 
 class SearchCellMixer(nn.Module):
-    def __init__(self, num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act):
+    def __init__(self, num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act, fixed_alphas):
         super(SearchCellMixer, self).__init__()
-        self.mlp1 = searchMLP1(num_patches, hidden_s_candidates, hidden_size, drop_p, off_act)
-        self.mlp2 = searchMLP2(hidden_size, hidden_c_candidates, drop_p, off_act)
+        mlp1_fixed_alphas = fixed_alphas[0] if fixed_alphas is not None else None
+        mlp2_fixed_alphas = fixed_alphas[1] if fixed_alphas is not None else None
+        self.mlp1 = searchMLP1(num_patches, hidden_s_candidates, hidden_size, drop_p, off_act, mlp1_fixed_alphas)
+        self.mlp2 = searchMLP2(hidden_size, hidden_c_candidates, drop_p, off_act, mlp2_fixed_alphas)
 
     def forward(self, x, alphas):
         z = self.mlp1(x, alphas[0])  # search mixer
@@ -191,13 +193,18 @@ class SearchCellMixer(nn.Module):
 
 
 class searchMLP1(nn.Module):
-    def __init__(self, num_patches, hidden_s_candidates, hidden_size, drop_p, off_act):
+    def __init__(self, num_patches, hidden_s_candidates, hidden_size, drop_p, off_act, fixed_alphas):
         super(searchMLP1, self).__init__()
-        self.ln = nn.LayerNorm(hidden_size)
-        self.T = Rearrange('b s c -> b c s')  # Transpose token and channel axis only
-        self.mixed_op = ops.mixedInverseAutoencoder(num_patches, hidden_s_candidates, drop_p, off_act)
+        self.skip_layer = isinstance(fixed_alphas, torch.Tensor) and (fixed_alphas == 0).all()
+
+        if not self.skip_layer:
+            self.ln = nn.LayerNorm(hidden_size)
+            self.T = Rearrange('b s c -> b c s')  # Transpose token and channel axis only
+            self.mixed_op = ops.mixedInverseAutoencoder(num_patches, hidden_s_candidates, drop_p, off_act, fixed_alphas)
 
     def forward(self, x, alphas):
+        if self.skip_layer:
+            return x
         z = self.ln(x)
         z = self.T(z)
         z = self.mixed_op(z, alphas)
@@ -206,12 +213,17 @@ class searchMLP1(nn.Module):
 
 
 class searchMLP2(nn.Module):
-    def __init__(self, hidden_size, hidden_c_candidates, drop_p, off_act):
+    def __init__(self, hidden_size, hidden_c_candidates, drop_p, off_act, fixed_alphas):
         super(searchMLP2, self).__init__()
-        self.ln = nn.LayerNorm(hidden_size)
-        self.mixed_op = ops.mixedInverseAutoencoder(hidden_size, hidden_c_candidates, drop_p, off_act)
+        self.skip_layer = isinstance(fixed_alphas, torch.Tensor) and (fixed_alphas == 0).all()
+
+        if not self.skip_layer:
+            self.ln = nn.LayerNorm(hidden_size)
+            self.mixed_op = ops.mixedInverseAutoencoder(hidden_size, hidden_c_candidates, drop_p, off_act, fixed_alphas)
 
     def forward(self, x, alphas):
+        if self.skip_layer:
+            return x
         out = self.ln(x)
         out = self.mixed_op(out, alphas)
         return out + x

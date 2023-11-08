@@ -4,8 +4,11 @@ import torch.nn.functional as F
 
 
 class mixedInverseAutoencoder(nn.Module):
-    def __init__(self, in_dim, search_dims, drop_p, off_act):
+    def __init__(self, in_dim: int, search_dims: list[int], drop_p: float, off_act: bool, fixed_alphas):
         super().__init__()
+        alphas = fixed_alphas if fixed_alphas is not None else torch.ones(len(search_dims))
+        self.are_activated = fixed_alphas is not None
+
         self.ops = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(in_dim, k),
@@ -13,12 +16,13 @@ class mixedInverseAutoencoder(nn.Module):
                 nn.Dropout(p=drop_p),
                 nn.Linear(k, in_dim),
                 nn.Dropout(p=drop_p)
-            ) for k in search_dims
+            ) for i, k in enumerate(search_dims) if alphas[i] > 0.
         ])
 
     def forward(self, x, alphas):
-        weights = F.sigmoid(alphas)
+        weights = F.sigmoid(alphas) if not self.are_activated else alphas
         f = sum(w * op(x) for w, op in zip(weights, self.ops))
+        if isinstance(f, int): return 0. * x
         return f
 
 

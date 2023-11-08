@@ -125,7 +125,7 @@ class SearchController(nn.Module):
     def weights(self):
         return self.net.parameters()
 
-    def get_detached_alphas(self, aslist=False, th=None, activated=True):
+    def get_detached_alphas(self, aslist=False, th=None, activated=True, binarize=True, top_k=None):
         detached = []
         for a in self.alphas:
             if isinstance(a, torch.Tensor):
@@ -146,7 +146,17 @@ class SearchController(nn.Module):
                         else:
                             p = p.detach()
                         if th is not None:
-                            p = torch.where(p >= th, 1, 0)
+                            p = torch.where(p > th, p, 0)
+                        if top_k is not None:
+                            assert(top_k <= len(p))
+                            least_k = len(p) - top_k
+                            _, idxs = p.topk(least_k, largest=False)
+                            p[idxs] = 0.
+                        if binarize:
+                            if th is not None:
+                                p = torch.where(p > th, 1, 0)
+                            else:
+                                p = torch.where(p > 0, 1, 0)
                         if aslist:
                             d.append(p.tolist())
                         else:
@@ -157,7 +167,7 @@ class SearchController(nn.Module):
 
 class SearchMixer(nn.Module):
     def __init__(self, in_channels, img_size, patch_size, hidden_size, hidden_s_candidates, hidden_c_candidates,
-                 n_cells, num_classes, drop_p, off_act, is_cls_token):
+                 n_cells, num_classes, drop_p, off_act, is_cls_token, fixed_alphas=None):
         super(SearchMixer, self).__init__()
         num_patches = img_size // patch_size * img_size // patch_size
         # (b, c, h, w) -> (b, d, h//p, w//p) -> (b, h//p*w//p, d)
@@ -177,7 +187,8 @@ class SearchMixer(nn.Module):
         self.hidden_c_candidates = hidden_c_candidates
         self.cells = nn.ModuleList()
         for i in range(n_cells):
-            cell = C.SearchCellMixer(num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act)
+            cell_fixed_alphas = fixed_alphas[i] if fixed_alphas is not None else None
+            cell = C.SearchCellMixer(num_patches, hidden_size, hidden_s_candidates, hidden_c_candidates, drop_p, off_act, cell_fixed_alphas)
             self.cells.append(cell)
 
         self.ln = nn.LayerNorm(hidden_size)
@@ -197,10 +208,13 @@ class SearchMixer(nn.Module):
 
 
 class FixedMixer(nn.Module):
-    def __init__(self, model, alphas):
+    def __init__(self, in_channels, img_size, patch_size, hidden_size, hidden_s_candidates, hidden_c_candidates,
+                 n_cells, num_classes, drop_p, off_act, is_cls_token, fixed_alphas):
         super(FixedMixer, self).__init__()
-        self.model = model
-        self.alphas = alphas
+        self.model = SearchMixer(in_channels, img_size, patch_size, hidden_size, hidden_s_candidates,
+                                 hidden_c_candidates, n_cells, num_classes, drop_p, off_act, is_cls_token,
+                                 fixed_alphas)
+        self.alphas = fixed_alphas
 
     def forward(self, x):
         return self.model(x, self.alphas)
@@ -210,17 +224,41 @@ class FixedMixer(nn.Module):
         all_alphas = []
         for c in range(self.model.n_cells):
             for i in range(len(self.model.hidden_s_candidates)):
-                all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][0].weight)
-                all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][3].weight)
-                all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
-                all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                try:
+                    all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][0].weight)
+                except:
+                    pass
+                try:
+                    all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][3].weight)
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                except:
+                    pass
                 #         ^
                 #         |___ append second time since in and out W belong to the same mixed_op with the same alpha
             for j in range(len(self.model.hidden_c_candidates)):
-                all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][0].weight)
-                all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][3].weight)
-                all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
-                all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                try:
+                    all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][0].weight)
+                except:
+                    pass
+                try:
+                    all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][3].weight)
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                except:
+                    pass
                 #         ^
                 #         |___ append second time since in and out W belong to the same mixed_op with the same alpha
         all_W.append(self.model.clf.weight)
