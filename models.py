@@ -224,17 +224,41 @@ class FixedMixer(nn.Module):
         all_alphas = []
         for c in range(self.model.n_cells):
             for i in range(len(self.model.hidden_s_candidates)):
-                all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][0].weight)
-                all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][3].weight)
-                all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
-                all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                try:
+                    all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][0].weight)
+                except:
+                    pass
+                try:
+                    all_W.append(self.model.cells[c].mlp1.mixed_op.ops[i][3].weight)
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][0][i]))
+                except:
+                    pass
                 #         ^
                 #         |___ append second time since in and out W belong to the same mixed_op with the same alpha
             for j in range(len(self.model.hidden_c_candidates)):
-                all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][0].weight)
-                all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][3].weight)
-                all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
-                all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                try:
+                    all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][0].weight)
+                except:
+                    pass
+                try:
+                    all_W.append(self.model.cells[c].mlp2.mixed_op.ops[j][3].weight)
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                except:
+                    pass
+                try:
+                    all_alphas.append(F.sigmoid(self.alphas[c][1][j]))
+                except:
+                    pass
                 #         ^
                 #         |___ append second time since in and out W belong to the same mixed_op with the same alpha
         all_W.append(self.model.clf.weight)
