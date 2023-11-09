@@ -18,20 +18,20 @@ CUDA_VISIBLE_DEVICES=1,2,3 python3 fixed_main.py \
 	--label-smoothing 0.1 \
 	--warmup-epoch 10 \
 	--clip-grad 0 \
-	--cutmix-beta 1. \
+	--cutmix-beta 0.5 \
 	--cutmix-prob 0.5 \
 	--distributed \
 	--recovery-interval 0 \
 	--use-timm-transform \
 	--hflip 0.5 \
 	--vflip 0. \
-	--color-jitter 0.4 \
+	--color-jitter 0.2 \
 	--train-interpolation bilinear \
 	--reprob 0.1 \
 	--remode pixel \
 	--recount 1 \
 	--autoaugment v0r \
 	--th-arch 0.5 \
-	--top-k 2 \
+	--top-k 3 \
 	--binarize-arch \
 	--verbose
