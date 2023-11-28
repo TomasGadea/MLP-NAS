@@ -125,8 +125,27 @@ class SearchController(nn.Module):
     def weights(self):
         return self.net.parameters()
 
-    def get_detached_alphas(self, aslist=False, th=None, activated=True, binarize=True, top_k=None):
+    def get_detached_alphas(
+        self,
+        aslist: bool = False,
+        th: float | None = None,
+        activated: bool = True,
+        binarize: bool = True,
+        top_k: int | None = None,
+    ) -> list[..., list[float]] | list[..., torch.FloatTensor]:
+        """Return the detached alpha weights from the SearchController.
+
+        Args:
+            aslist: if True returns it in list format list[..., list[float]].
+                If not, returns as list[..., torch.FloatTensor]
+            th: thresholds the alphas, alphas lower than th are zeroed.
+            activated: performs nn.Sigmoid() to alphas before returning.
+            binarize: alphas above th become 1 and under th become 0.
+            top_k: pruns the alphas, only k alphas with higher value are returned.
+                If binarize is True, first prunes, then binarizes.
+        """
         detached = []
+        d = None  # default value, shouldn't be None at end of function.
         for a in self.alphas:
             if isinstance(a, torch.Tensor):
                 if activated:
@@ -148,10 +167,10 @@ class SearchController(nn.Module):
                         if th is not None:
                             p = torch.where(p > th, p, 0)
                         if top_k is not None:
-                            assert(top_k <= len(p))
+                            assert top_k <= len(p)
                             least_k = len(p) - top_k
                             _, idxs = p.topk(least_k, largest=False)
-                            p[idxs] = 0.
+                            p[idxs] = 0.0
                         if binarize:
                             if th is not None:
                                 p = torch.where(p > th, 1, 0)
