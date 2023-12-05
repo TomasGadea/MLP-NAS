@@ -7,8 +7,10 @@ import os
 import json
 
 from dataloader import get_dataloaders
-from utils import get_model, save_config,set_seed
-from train import Trainer
+from utils import get_model, save_config,set_seed,ddp_setup
+from torch.distributed import destroy_process_group
+import torch.multiprocessing as mp
+from train import Trainer, VanillaTrainer
 from fixed_main import main as f_main
 from fvcore.nn import FlopCountAnalysis, parameter_count, flop_count_table
 
@@ -42,6 +44,27 @@ def main(args):
         args.path = os.path.join(args.output, args.project, args.experiment)
         f_main(args)
 
+def distributed_main(rank, world_size, args):
+    print(f"PID: {os.getpid()}")
+    args.device = rank
+    args.world_size = world_size
+    ddp_setup(rank, world_size)
+
+    train_dl, valid_dl, test_dl = get_dataloaders(args)
+    model = get_model(args)
+    input = torch.rand((1, 3, args.size, args.size)).to(args.device)
+    flops = FlopCountAnalysis(model, input)
+    args.flops = flops.total()
+    args.n_params = parameter_count(model)['']
+    os.makedirs(os.path.join(args.output, args.experiment), exist_ok=True)
+    with open(os.path.join(args.output, args.experiment, "flops_table.txt"), "w") as text_file:
+        text_file.write(f"{flop_count_table(flops, max_depth=0)}")
+
+    save_config(args)
+    trainer = Trainer(model, args)
+    trainer.fit(train_dl, valid_dl, test_dl, args)
+
+    destroy_process_group()
 
 
 if __name__ == '__main__':
@@ -51,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=str, default=f"./out")
     parser.add_argument('--experiment', type=str, default=f"experiment_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}")
     parser.add_argument('--seed', type=int, default=random.randint(1, 1e5))
-    parser.add_argument('--dataset', required=True, choices=['c10', 'c100', 'svhn', 'stl10', 'imagenet'])
+    parser.add_argument('--dataset', required=True, choices=['c10', 'c100', 'svhn', 'stl10', 'imagenet','imagenet100'])
     parser.add_argument('--img-size', type=int, dest='size')
     parser.add_argument('--padding', type=int)
     parser.add_argument('--valid-ratio', type=float, default=0.5)
@@ -110,6 +133,7 @@ if __name__ == '__main__':
 
 
     # Retrain Fixed Arch
+    parser.add_argument('--use-timm-transform', action='store_true', help='Use timm.data transforms (for Imagenet only)')
     parser.add_argument('--retrain-fixed', action='store_true')
     parser.add_argument('--fixed-batch-size', type=int, default=128)
     parser.add_argument('--fixed-eval-batch-size', type=int, default=1024)
@@ -134,6 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--fixed-cutmix-beta', type=float, default=1.0)
     parser.add_argument('--fixed-cutmix-prob', type=float, default=0.)
     parser.add_argument('--discrete', action='store_true')
+    parser.add_argument('--distributed', action='store_true')
 
 
     args = parser.parse_args()
@@ -147,5 +172,10 @@ if __name__ == '__main__':
     # torch.random.manual_seed(args.seed)
     set_seed(args.seed)
 
-    main(args)
+    # main(args)
+    if args.distributed:
+        world_size = torch.cuda.device_count()
+        mp.spawn(distributed_main, args=(world_size, args), nprocs=world_size)
+    else:
+        main(args)
 

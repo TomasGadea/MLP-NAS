@@ -1,13 +1,12 @@
 echo $$
-CUDA_VISIBLE_DEVICES=1,2,3 python3 fixed_main.py \
+CUDA_VISIBLE_DEVICES=2,4 python3 fixed_main.py \
 	--path-to-supernet /home/yixin/MLP-NAS/out/MLP-s16 \
 	--model fixed-mixer \
-	--dataset imagenet \
+	--dataset c10 \
 	--img-size 224 \
 	--batch-size 256 \
 	--eval-batch-size 128 \
-	--valid-ratio 0. \
-	--epochs 300 \
+	--epochs 100 \
 	--lr 1e-3 \
 	--momentum 0.9 \
 	--optimizer Adam \
@@ -31,7 +30,6 @@ CUDA_VISIBLE_DEVICES=1,2,3 python3 fixed_main.py \
 	--remode pixel \
 	--recount 1 \
 	--autoaugment v0r \
-	--th-arch 0.5 \
-	--top-k 3 \
+	--top-k 4 \
 	--binarize-arch \
 	--verbose

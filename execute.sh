@@ -1,7 +1,7 @@
-echo $$
-source environ/bin/activate
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 main.py \
-	--dataset c10 \
+# echo $$
+# source environ/bin/activate
+CUDA_VISIBLE_DEVICES=1,2,4 python3 main.py \
+	--dataset imagenet100 \
  	--img-size 224 \
   	--padding 28 \
 	--valid-ratio 0.5 \
@@ -10,10 +10,10 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 main.py \
 	--eval-batch-size 1024 \
 	--autoaugment \
 	--model search_mixer \
-	--hidden-size  128 \
-	--patch-size  4 \
-	--hidden-s-candidates 16 32 64 \
-	--hidden-c-candidates 128 256 512 \
+	--hidden-size  512 \
+	--patch-size  16 \
+	--hidden-s-candidates 32 64 128 256 512 \
+	--hidden-c-candidates 128 256 512 1024 2048 \
 	--n-cells 8 \
 	--drop-p 0. \
 	--clip-grad 0 \
@@ -35,7 +35,7 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=5 python3 main.py \
 	--a-beta2 0.999 \
 	--a-weight-decay 0. \
 	--w-scheduler cosine \
-	--epochs 10 \
+	--epochs 50 \
 	--w-min-lr 1e-6 \
 	--warmup-epochs 5 \
-	--use-amp \
+	--distributed \

@@ -43,6 +43,14 @@ def get_dataloaders(args):
         train_ds = torchvision.datasets.ImageFolder(traindir, transform=train_transform)
         test_ds = torchvision.datasets.ImageFolder(valdir, transform=test_transform)
         args.num_classes = 1000
+    elif args.dataset == 'imagenet100':
+        config = json.load(open('config.json'))
+        traindir = os.path.join(config['IMAGENET100_PATH'], 'train')
+        valdir = os.path.join(config['IMAGENET100_PATH'], 'val')
+
+        train_ds = torchvision.datasets.ImageFolder(traindir, transform=train_transform)
+        test_ds = torchvision.datasets.ImageFolder(valdir, transform=test_transform)
+        args.num_classes = 100
 
     else:
         raise ValueError(f"No such dataset:{args.dataset}")
@@ -105,6 +113,11 @@ def get_transform(args):
         args.padding = 28
         args.size = 224
         args.mean, args.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    
+    elif args.dataset == 'imagenet100':
+        args.padding = 28
+        args.size = 224
+        args.mean, args.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
         if args.use_timm_transform:
             train_transform = transforms_imagenet_train(
@@ -162,7 +175,7 @@ def get_transform(args):
         ]
     )
 
-    if  args.dataset == 'imagenet':
+    if  args.dataset == 'imagenet' or args.dataset =='imagenet100':
         test_transform_list = [transforms.Resize(size=(args.size, args.size))]
         test_transform = transforms.Compose(
                 test_transform_list+[
